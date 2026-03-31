@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Header from './Header'
 
 interface Order {
   id: number
@@ -16,8 +17,9 @@ function Orders() {
   const [selectedAll, setSelectedAll] = useState(false)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const orders: Order[] = [
+  const allOrders: Order[] = [
     { id: 1, orderCode: 'ORD-2024-001', customer: 'Nguyễn Văn A', products: 3, total: 2500000, status: 'delivered', paymentMethod: 'COD', date: '2024-03-15', shippingPartner: 'GHN' },
     { id: 2, orderCode: 'ORD-2024-002', customer: 'Trần Thị B', products: 1, total: 3000000, status: 'shipping', paymentMethod: 'Chuyển khoản', date: '2024-03-20', shippingPartner: 'GHTK' },
     { id: 3, orderCode: 'ORD-2024-003', customer: 'Lê Văn C', products: 2, total: 1800000, status: 'confirmed', paymentMethod: 'Ví điện tử', date: '2024-03-22' },
@@ -25,6 +27,11 @@ function Orders() {
     { id: 5, orderCode: 'ORD-2024-005', customer: 'Hoàng Văn E', products: 1, total: 2800000, status: 'delivered', paymentMethod: 'Chuyển khoản', date: '2024-03-26', shippingPartner: 'VTP' },
     { id: 6, orderCode: 'ORD-2024-006', customer: 'Vũ Thị F', products: 4, total: 3200000, status: 'cancelled', paymentMethod: 'COD', date: '2024-03-28' },
   ]
+
+  const orders = allOrders.filter(order => 
+    order.orderCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customer.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const tabs = [
     { id: 'all', label: 'Tất cả', count: orders.length },
@@ -81,67 +88,12 @@ function Orders() {
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <div style={{ 
-        padding: '24px 40px', 
-        borderBottom: '1px solid #2a2f3e',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: '#0f1419'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, letterSpacing: '1.2px' }}>QUẢN LÝ ĐỐN HÀNG</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>⚙️</button>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>🔔</button>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text"
-              placeholder="Tìm kiếm đơn hàng..."
-              style={{
-                padding: '10px 18px 10px 42px',
-                background: '#1a1f2e',
-                border: '1px solid #2a2f3e',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '15px',
-                width: '240px'
-              }}
-            />
-            <span style={{ 
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#8b92a7',
-              fontSize: '16px'
-            }}>🔍</span>
-          </div>
-        </div>
-      </div>
+      <Header 
+        title="QUẢN LÝ ĐƠN HÀNG"
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Tìm kiếm đơn hàng..."
+      />
 
       <div style={{ padding: '40px' }}>
         <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
