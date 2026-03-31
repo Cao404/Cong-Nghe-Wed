@@ -6,7 +6,6 @@ import Customers from './components/Customers'
 import Category from './components/Category'
 import UserManagement from './components/UserManagement'
 import Promo from './components/Promo'
-import Audit from './components/Audit'
 import Warranty from './components/Warranty'
 import Reports from './components/Reports'
 import Rights from './components/Rights'
@@ -25,7 +24,6 @@ function App() {
     { id: 'category', label: 'Quản lý danh mục', icon: '☰' },
     { section: 'QUẢN TRỊ' },
     { id: 'user-mgmt', label: 'Quản lý người dùng', icon: '👥' },
-    { id: 'audit', label: 'Kiểm Duyệt Nội Dung', icon: '⚙️' },
     { id: 'promo', label: 'Khuyến Mãi', icon: '🎁' },
     { id: 'shipping', label: 'Vận Chuyển', icon: '🚚' },
     { id: 'warranty', label: 'Khiếu Nại & Tranh Chấp', icon: '⚖️' },
@@ -162,7 +160,6 @@ function App() {
         {currentPage === 'products' && <Products />}
         {currentPage === 'category' && <Category />}
         {currentPage === 'user-mgmt' && <UserManagement />}
-        {currentPage === 'audit' && <Audit />}
         {currentPage === 'promo' && <Promo />}
         {currentPage === 'shipping' && <Shipping />}
         {currentPage === 'warranty' && <Warranty />}
