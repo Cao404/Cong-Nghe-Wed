@@ -7,15 +7,29 @@ interface ProductWithImage extends Product {
   sold: number
 }
 
+interface Category {
+  id: number
+  name: string
+  description: string
+  productCount: number
+  parentCategory: string
+  status: 'active' | 'inactive'
+}
+
 interface StoreState {
   products: ProductWithImage[]
   orders: Order[]
   customers: Customer[]
+  categories: Category[]
   currentPage: 'dashboard' | 'products' | 'orders' | 'customers' | 'category' | 'users' | 'user-mgmt' | 'audit' | 'promo' | 'shipping' | 'warranty' | 'reports' | 'rights' | 'inventory'
   setCurrentPage: (page: 'dashboard' | 'products' | 'orders' | 'customers' | 'category' | 'users' | 'user-mgmt' | 'audit' | 'promo' | 'shipping' | 'warranty' | 'reports' | 'rights' | 'inventory') => void
   addProduct: (product: ProductWithImage) => void
   updateProduct: (id: number, product: Partial<ProductWithImage>) => void
   deleteProduct: (id: number) => void
+  addCategory: (category: Category) => void
+  updateCategory: (id: number, category: Partial<Category>) => void
+  deleteCategory: (id: number) => void
+  setCategories: (categories: Category[]) => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -84,6 +98,15 @@ export const useStore = create<StoreState>((set) => ({
     }
   ],
 
+  categories: [
+    { id: 1, name: 'Điện thoại', description: 'Điện thoại thông minh', productCount: 45, parentCategory: 'Điện tử', status: 'active' },
+    { id: 2, name: 'Laptop', description: 'Máy tính xách tay', productCount: 32, parentCategory: 'Điện tử', status: 'active' },
+    { id: 3, name: 'Máy tính bảng', description: 'Tablet các loại', productCount: 18, parentCategory: 'Điện tử', status: 'active' },
+    { id: 4, name: 'Phụ kiện', description: 'Phụ kiện điện tử', productCount: 67, parentCategory: 'Điện tử', status: 'active' },
+    { id: 5, name: 'Tai nghe', description: 'Tai nghe và loa', productCount: 28, parentCategory: 'Phụ kiện', status: 'active' },
+    { id: 6, name: 'Sạc dự phòng', description: 'Pin sạc dự phòng', productCount: 15, parentCategory: 'Phụ kiện', status: 'active' },
+  ],
+
   orders: [
     { id: 1, customerName: 'Nguyễn Văn A', total: 25000000, status: 
 'completed', date: '2024-03-15' },
@@ -111,5 +134,19 @@ export const useStore = create<StoreState>((set) => ({
   
   deleteProduct: (id) => set((state) => ({
     products: state.products.filter(p => p.id !== id)
-  }))
+  })),
+
+  addCategory: (category) => set((state) => ({ 
+    categories: [...state.categories, category] 
+  })),
+  
+  updateCategory: (id, updatedCategory) => set((state) => ({
+    categories: state.categories.map(c => c.id === id ? { ...c, ...updatedCategory } : c)
+  })),
+  
+  deleteCategory: (id) => set((state) => ({
+    categories: state.categories.filter(c => c.id !== id)
+  })),
+
+  setCategories: (categories) => set({ categories })
 }))
