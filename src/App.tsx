@@ -4,7 +4,6 @@ import Products from './components/Products'
 import Orders from './components/Orders'
 import Customers from './components/Customers'
 import Category from './components/Category'
-import Users from './components/Users'
 import UserManagement from './components/UserManagement'
 import Promo from './components/Promo'
 import Audit from './components/Audit'
@@ -25,7 +24,6 @@ function App() {
     { section: 'DANH MỤC' },
     { id: 'category', label: 'Quản lý danh mục', icon: '☰' },
     { section: 'QUẢN TRỊ' },
-    { id: 'users', label: 'Duyệt Người Bán', icon: '👤' },
     { id: 'user-mgmt', label: 'Quản lý người dùng', icon: '👥' },
     { id: 'audit', label: 'Kiểm Duyệt Nội Dung', icon: '⚙️' },
     { id: 'promo', label: 'Khuyến Mãi', icon: '🎁' },
@@ -163,7 +161,6 @@ function App() {
         {currentPage === 'dashboard' && <Dashboard />}
         {currentPage === 'products' && <Products />}
         {currentPage === 'category' && <Category />}
-        {currentPage === 'users' && <Users />}
         {currentPage === 'user-mgmt' && <UserManagement />}
         {currentPage === 'audit' && <Audit />}
         {currentPage === 'promo' && <Promo />}
