@@ -16,6 +16,7 @@ interface Dispute {
 
 function Warranty() {
   const [selectedAll, setSelectedAll] = useState(false)
+  const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState('all')
 
   const disputes: Dispute[] = [
@@ -82,6 +83,28 @@ function Warranty() {
       low: '#10b981'
     }
     return colors[priority] || '#6b7280'
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedAll(checked)
+    if (checked) {
+      setSelectedItems(disputes.map(d => d.id))
+    } else {
+      setSelectedItems([])
+    }
+  }
+
+  const handleSelectItem = (id: number) => {
+    if (selectedItems.includes(id)) {
+      setSelectedItems(selectedItems.filter(i => i !== id))
+      setSelectedAll(false)
+    } else {
+      const newSelected = [...selectedItems, id]
+      setSelectedItems(newSelected)
+      if (newSelected.length === disputes.length) {
+        setSelectedAll(true)
+      }
+    }
   }
 
   return (
@@ -188,7 +211,7 @@ function Warranty() {
                   <input 
                     type="checkbox" 
                     checked={selectedAll}
-                    onChange={(e) => setSelectedAll(e.target.checked)}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
                     style={{ cursor: 'pointer', width: '20px', height: '20px' }}
                   />
                 </th>
@@ -206,7 +229,7 @@ function Warranty() {
               {disputes.map((dispute) => (
                 <tr key={dispute.id} style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#0f1419'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '24px 28px' }}>
-                    <input type="checkbox" checked={selectedAll} readOnly style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
+                    <input type="checkbox" checked={selectedItems.includes(dispute.id)} onChange={() => handleSelectItem(dispute.id)} style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
                   </td>
                   <td style={{ padding: '24px 28px' }}>
                     <div style={{ color: '#3b82f6', fontSize: '15px', fontWeight: 600, marginBottom: '4px' }}>{dispute.disputeCode}</div>
