@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Header from './Header'
 
 interface InventoryItem {
   id: number
@@ -16,8 +17,9 @@ interface InventoryItem {
 function Inventory() {
   const [selectedAll, setSelectedAll] = useState(false)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const items: InventoryItem[] = [
+  const allItems: InventoryItem[] = [
     { id: 1, productName: 'iPhone 15 Pro', sku: 'SKU-0001', warehouse: 'Kho Hà Nội', stock: 45, reserved: 8, available: 37, minStock: 10, status: 'in_stock', lastUpdated: '2024-03-25' },
     { id: 2, productName: 'Samsung Galaxy S24', sku: 'SKU-0002', warehouse: 'Kho TP.HCM', stock: 12, reserved: 5, available: 7, minStock: 15, status: 'low_stock', lastUpdated: '2024-03-24' },
     { id: 3, productName: 'MacBook Pro M3', sku: 'SKU-0003', warehouse: 'Kho Hà Nội', stock: 0, reserved: 0, available: 0, minStock: 5, status: 'out_of_stock', lastUpdated: '2024-03-23' },
@@ -25,6 +27,12 @@ function Inventory() {
     { id: 5, productName: 'AirPods Pro', sku: 'SKU-0005', warehouse: 'Kho TP.HCM', stock: 8, reserved: 2, available: 6, minStock: 20, status: 'low_stock', lastUpdated: '2024-03-24' },
     { id: 6, productName: 'Apple Watch Series 9', sku: 'SKU-0006', warehouse: 'Kho Hà Nội', stock: 35, reserved: 7, available: 28, minStock: 15, status: 'in_stock', lastUpdated: '2024-03-25' },
   ]
+
+  const items = allItems.filter(item =>
+    item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.warehouse.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const stats = [
     { label: 'Tổng Sản Phẩm', value: items.length.toString(), icon: '📦', color: '#3b82f6' },
@@ -75,67 +83,12 @@ function Inventory() {
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <div style={{ 
-        padding: '24px 40px', 
-        borderBottom: '1px solid #2a2f3e',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: '#0f1419'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, letterSpacing: '1.2px' }}>QUẢN LÝ KHO HÀNG</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>⚙️</button>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>🔔</button>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text"
-              placeholder="Tìm kiếm..."
-              style={{
-                padding: '10px 18px 10px 42px',
-                background: '#1a1f2e',
-                border: '1px solid #2a2f3e',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '15px',
-                width: '240px'
-              }}
-            />
-            <span style={{ 
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#8b92a7',
-              fontSize: '16px'
-            }}>🔍</span>
-          </div>
-        </div>
-      </div>
+      <Header 
+        title="QUẢN LÝ KHO HÀNG"
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Tìm kiếm sản phẩm..."
+      />
 
       <div style={{ padding: '40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '30px' }}>
