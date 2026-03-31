@@ -13,6 +13,7 @@ interface ContentItem {
 
 function Audit() {
   const [selectedAll, setSelectedAll] = useState(false)
+  const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState('all')
 
   const items: ContentItem[] = [
@@ -85,6 +86,28 @@ function Audit() {
       rejected: 'Từ chối'
     }
     return texts[status] || status
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedAll(checked)
+    if (checked) {
+      setSelectedItems(items.map(i => i.id))
+    } else {
+      setSelectedItems([])
+    }
+  }
+
+  const handleSelectItem = (id: number) => {
+    if (selectedItems.includes(id)) {
+      setSelectedItems(selectedItems.filter(i => i !== id))
+      setSelectedAll(false)
+    } else {
+      const newSelected = [...selectedItems, id]
+      setSelectedItems(newSelected)
+      if (newSelected.length === items.length) {
+        setSelectedAll(true)
+      }
+    }
   }
 
   return (
@@ -191,7 +214,7 @@ function Audit() {
                   <input 
                     type="checkbox" 
                     checked={selectedAll}
-                    onChange={(e) => setSelectedAll(e.target.checked)}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
                     style={{ cursor: 'pointer', width: '20px', height: '20px' }}
                   />
                 </th>
@@ -208,7 +231,7 @@ function Audit() {
               {items.map((item) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#0f1419'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '24px 28px' }}>
-                    <input type="checkbox" checked={selectedAll} readOnly style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
+                    <input type="checkbox" checked={selectedItems.includes(item.id)} onChange={() => handleSelectItem(item.id)} style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
                   </td>
                   <td style={{ padding: '24px 28px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
