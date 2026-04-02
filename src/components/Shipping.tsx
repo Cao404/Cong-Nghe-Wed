@@ -248,17 +248,19 @@ function Shipping() {
                   <td style={{ padding: '24px 28px', color: 'white', fontSize: '16px', fontWeight: 600 }}>
                     {partner.fee.toLocaleString('vi-VN')}₫
                   </td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                    <span style={{ 
-                      padding: '6px 12px', 
-                      borderRadius: '6px', 
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      background: `${getStatusColor(partner.status)}20`,
-                      color: getStatusColor(partner.status)
-                    }}>
-                      {getStatusText(partner.status)}
-                    </span>
+                  <td style={{ padding: '24px 28px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <span style={{ 
+                        padding: '6px 12px', 
+                        borderRadius: '6px', 
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        background: `${getStatusColor(partner.status)}20`,
+                        color: getStatusColor(partner.status)
+                      }}>
+                        {getStatusText(partner.status)}
+                      </span>
+                    </div>
                   </td>
                   <td style={{ padding: '24px 28px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
