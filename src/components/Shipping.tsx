@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Header from './Header'
 
 interface ShippingPartner {
   id: number
@@ -17,8 +18,9 @@ interface ShippingPartner {
 function Shipping() {
   const [selectedAll, setSelectedAll] = useState(false)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const partners: ShippingPartner[] = [
+  const allPartners: ShippingPartner[] = [
     { id: 1, name: 'Giao Hàng Nhanh', code: 'GHN', logo: '🚚', type: 'express', status: 'active', totalOrders: 1234, successRate: 98.5, avgDeliveryTime: 2.5, fee: 25000, contact: '1900-1234' },
     { id: 2, name: 'Giao Hàng Tiết Kiệm', code: 'GHTK', logo: '📦', type: 'economy', status: 'active', totalOrders: 987, successRate: 97.2, avgDeliveryTime: 3.5, fee: 18000, contact: '1900-5678' },
     { id: 3, name: 'Viettel Post', code: 'VTP', logo: '✉️', type: 'standard', status: 'active', totalOrders: 756, successRate: 96.8, avgDeliveryTime: 3, fee: 22000, contact: '1900-8888' },
@@ -26,6 +28,11 @@ function Shipping() {
     { id: 5, name: 'J&T Express', code: 'JT', logo: '🚛', type: 'express', status: 'active', totalOrders: 892, successRate: 97.8, avgDeliveryTime: 2.8, fee: 23000, contact: '1900-1088' },
     { id: 6, name: 'Ninja Van', code: 'NINJA', logo: '🥷', type: 'express', status: 'inactive', totalOrders: 234, successRate: 94.2, avgDeliveryTime: 3.2, fee: 24000, contact: '1900-6886' },
   ]
+
+  const partners = allPartners.filter(partner =>
+    partner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    partner.code.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const getTypeText = (type: string) => {
     const texts: Record<string, string> = {
@@ -77,67 +84,12 @@ function Shipping() {
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <div style={{ 
-        padding: '24px 40px', 
-        borderBottom: '1px solid #2a2f3e',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: '#0f1419'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, letterSpacing: '1.2px' }}>VẬN CHUYỂN & ĐỐI TÁC</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>⚙️</button>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>🔔</button>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text"
-              placeholder="Tìm kiếm..."
-              style={{
-                padding: '10px 18px 10px 42px',
-                background: '#1a1f2e',
-                border: '1px solid #2a2f3e',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '15px',
-                width: '240px'
-              }}
-            />
-            <span style={{ 
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#8b92a7',
-              fontSize: '16px'
-            }}>🔍</span>
-          </div>
-        </div>
-      </div>
+      <Header 
+        title="VẬN CHUYỂN & ĐỐI TÁC"
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Tìm kiếm đối tác..."
+      />
 
       <div style={{ padding: '40px' }}>
         <div style={{ background: '#1a1f2e', padding: '32px', borderRadius: '12px', border: '1px solid #2a2f3e', marginBottom: '30px' }}>
