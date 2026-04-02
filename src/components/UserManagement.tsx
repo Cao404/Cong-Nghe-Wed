@@ -43,6 +43,13 @@ function UserManagement() {
     ? users.filter(u => u.status === 'banned')
     : users.filter(u => u.role === activeTab)
 
+  // Apply search filter
+  const searchedUsers = filteredUsers.filter(user => 
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.phone.includes(searchTerm)
+  )
+
   const getRoleText = (role: string) => {
     const texts: Record<string, string> = {
       admin: 'Quản trị viên',
@@ -80,7 +87,7 @@ function UserManagement() {
   const handleSelectAll = (checked: boolean) => {
     setSelectedAll(checked)
     if (checked) {
-      setSelectedItems(filteredUsers.map(u => u.id))
+      setSelectedItems(searchedUsers.map(u => u.id))
     } else {
       setSelectedItems([])
     }
@@ -93,7 +100,7 @@ function UserManagement() {
     } else {
       const newSelected = [...selectedItems, id]
       setSelectedItems(newSelected)
-      if (newSelected.length === filteredUsers.length) {
+      if (newSelected.length === searchedUsers.length) {
         setSelectedAll(true)
       }
     }
@@ -172,7 +179,7 @@ function UserManagement() {
           </div>
           
           <div style={{ padding: '16px 24px', borderBottom: '1px solid #2a2f3e', fontSize: '12px', color: '#6b7280' }}>
-            Hiện thị 1-{filteredUsers.length} trong {filteredUsers.length} kết quả
+            Hiện thị 1-{searchedUsers.length} trong {searchedUsers.length} kết quả
           </div>
 
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -195,7 +202,7 @@ function UserManagement() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {searchedUsers.map((user) => (
                 <tr key={user.id} style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#0f1419'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '24px 28px' }}>
                     <input type="checkbox" checked={selectedItems.includes(user.id)} onChange={() => handleSelectItem(user.id)} style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
