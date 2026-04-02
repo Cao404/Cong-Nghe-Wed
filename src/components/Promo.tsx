@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Header from './Header'
 
 interface Voucher {
   id: number
@@ -18,8 +19,9 @@ interface Voucher {
 function Promo() {
   const [selectedAll, setSelectedAll] = useState(false)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const vouchers: Voucher[] = [
+  const allVouchers: Voucher[] = [
     { id: 1, code: 'SUMMER2024', name: 'Giảm giá mùa hè', type: 'percentage', value: 20, minOrder: 500000, maxDiscount: 100000, quantity: 100, used: 45, startDate: '2024-06-01', endDate: '2024-08-31', status: 'active' },
     { id: 2, code: 'FREESHIP50K', name: 'Miễn phí vận chuyển', type: 'fixed', value: 50000, minOrder: 200000, maxDiscount: 50000, quantity: 200, used: 156, startDate: '2024-01-01', endDate: '2024-12-31', status: 'active' },
     { id: 3, code: 'NEWUSER100K', name: 'Khách hàng mới', type: 'fixed', value: 100000, minOrder: 300000, maxDiscount: 100000, quantity: 500, used: 234, startDate: '2024-01-01', endDate: '2024-12-31', status: 'active' },
@@ -27,6 +29,11 @@ function Promo() {
     { id: 5, code: 'VIP15', name: 'Ưu đãi VIP', type: 'percentage', value: 15, minOrder: 2000000, maxDiscount: 500000, quantity: 30, used: 12, startDate: '2024-03-01', endDate: '2024-06-30', status: 'active' },
     { id: 6, code: 'WEEKEND200K', name: 'Cuối tuần vui vẻ', type: 'fixed', value: 200000, minOrder: 1500000, maxDiscount: 200000, quantity: 100, used: 67, startDate: '2024-03-01', endDate: '2024-04-30', status: 'active' },
   ]
+
+  const vouchers = allVouchers.filter(voucher =>
+    voucher.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    voucher.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -74,67 +81,12 @@ function Promo() {
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <div style={{ 
-        padding: '24px 40px', 
-        borderBottom: '1px solid #2a2f3e',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: '#0f1419'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, letterSpacing: '1.2px' }}>KHUYẾN MÃI & CHÍNH SÁCH</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>⚙️</button>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>🔔</button>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text"
-              placeholder="Tìm kiếm..."
-              style={{
-                padding: '10px 18px 10px 42px',
-                background: '#1a1f2e',
-                border: '1px solid #2a2f3e',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '15px',
-                width: '240px'
-              }}
-            />
-            <span style={{ 
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#8b92a7',
-              fontSize: '16px'
-            }}>🔍</span>
-          </div>
-        </div>
-      </div>
+      <Header 
+        title="KHUYẾN MÃI & CHÍNH SÁCH"
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Tìm kiếm voucher..."
+      />
 
       <div style={{ padding: '40px' }}>
         <div style={{ background: '#1a1f2e', padding: '32px', borderRadius: '12px', border: '1px solid #2a2f3e', marginBottom: '30px' }}>
