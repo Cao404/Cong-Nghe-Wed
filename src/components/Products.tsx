@@ -382,17 +382,19 @@ function Products() {
                   <td style={{ padding: '24px 28px', color: 'white', fontSize: '16px', fontWeight: 600 }}>{product.price.toLocaleString('vi-VN')} ₫</td>
                   <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px', textAlign: 'center' }}>{product.stock}</td>
                   <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px', textAlign: 'center' }}>{product.sold}</td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                    <span style={{ 
-                      padding: '6px 14px', 
-                      borderRadius: '6px', 
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      background: product.stock > 10 ? '#10b98120' : product.stock > 5 ? '#f9731620' : '#ef444420',
-                      color: product.stock > 10 ? '#10b981' : product.stock > 5 ? '#f97316' : '#ef4444'
-                    }}>
-                      {product.stock > 10 ? 'Còn hàng' : product.stock > 5 ? 'Sắp hết' : 'Hết hàng'}
-                    </span>
+                  <td style={{ padding: '24px 28px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <span style={{ 
+                        padding: '6px 14px', 
+                        borderRadius: '6px', 
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        background: product.stock > 10 ? '#10b98120' : product.stock > 5 ? '#f9731620' : '#ef444420',
+                        color: product.stock > 10 ? '#10b981' : product.stock > 5 ? '#f97316' : '#ef4444'
+                      }}>
+                        {product.stock > 10 ? 'Còn hàng' : product.stock > 5 ? 'Sắp hết' : 'Hết hàng'}
+                      </span>
+                    </div>
                   </td>
                   <td style={{ padding: '24px 28px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
