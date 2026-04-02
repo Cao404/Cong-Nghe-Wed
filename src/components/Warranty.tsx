@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Header from './Header'
 
 interface Dispute {
   id: number
@@ -18,8 +19,9 @@ function Warranty() {
   const [selectedAll, setSelectedAll] = useState(false)
   const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const disputes: Dispute[] = [
+  const allDisputes: Dispute[] = [
     { id: 1, disputeCode: 'DIS-001', orderCode: 'ORD-2024-001', customer: 'Nguyễn Văn A', shop: 'Shop Tech Pro', type: 'refund', reason: 'Sản phẩm không đúng mô tả', amount: 2500000, status: 'pending', priority: 'high', createdDate: '2024-03-25' },
     { id: 2, disputeCode: 'DIS-002', orderCode: 'ORD-2024-015', customer: 'Trần Thị B', shop: 'Shop Mobile', type: 'return', reason: 'Sản phẩm bị lỗi', amount: 3000000, status: 'investigating', priority: 'high', createdDate: '2024-03-24' },
     { id: 3, disputeCode: 'DIS-003', orderCode: 'ORD-2024-032', customer: 'Lê Văn C', shop: 'Shop Audio', type: 'warranty', reason: 'Yêu cầu bảo hành', amount: 1500000, status: 'resolved', priority: 'medium', createdDate: '2024-03-23' },
@@ -27,6 +29,13 @@ function Warranty() {
     { id: 5, disputeCode: 'DIS-005', orderCode: 'ORD-2024-056', customer: 'Hoàng Văn E', shop: 'Shop Accessories', type: 'refund', reason: 'Nhận sai sản phẩm', amount: 800000, status: 'resolved', priority: 'low', createdDate: '2024-03-21' },
     { id: 6, disputeCode: 'DIS-006', orderCode: 'ORD-2024-067', customer: 'Vũ Thị F', shop: 'Shop Gaming', type: 'return', reason: 'Đổi ý không mua', amount: 5200000, status: 'rejected', priority: 'low', createdDate: '2024-03-20' },
   ]
+
+  const disputes = allDisputes.filter(dispute =>
+    dispute.disputeCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    dispute.orderCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    dispute.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    dispute.shop.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const tabs = [
     { id: 'all', label: 'Tất cả', count: disputes.length },
@@ -109,67 +118,12 @@ function Warranty() {
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <div style={{ 
-        padding: '24px 40px', 
-        borderBottom: '1px solid #2a2f3e',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: '#0f1419'
-      }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, letterSpacing: '1.2px' }}>KHIẾU NẠI & TRANH CHẤP</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>⚙️</button>
-          <button style={{ 
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px'
-          }}>🔔</button>
-          <div style={{ position: 'relative' }}>
-            <input 
-              type="text"
-              placeholder="Tìm kiếm..."
-              style={{
-                padding: '10px 18px 10px 42px',
-                background: '#1a1f2e',
-                border: '1px solid #2a2f3e',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '15px',
-                width: '240px'
-              }}
-            />
-            <span style={{ 
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#8b92a7',
-              fontSize: '16px'
-            }}>🔍</span>
-          </div>
-        </div>
-      </div>
+      <Header 
+        title="KHIẾU NẠI & TRANH CHẤP"
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Tìm kiếm tranh chấp..."
+      />
 
       <div style={{ padding: '40px' }}>
         <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
