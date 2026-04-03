@@ -11,9 +11,23 @@ import Reports from './components/Reports'
 import Rights from './components/Rights'
 import Inventory from './components/Inventory'
 import Shipping from './components/Shipping'
+import Login from './components/Login'
+import Shop from './components/Shop'
 
 function App() {
-  const { currentPage, setCurrentPage } = useStore()
+  const { currentPage, setCurrentPage, currentUser, setCurrentUser } = useStore()
+
+  // Nếu chưa đăng nhập, hiển thị trang Login
+  if (!currentUser) {
+    return <Login />
+  }
+
+  // Nếu là user thường, hiển thị trang Shop
+  if (currentUser.role === 'user') {
+    return <Shop />
+  }
+
+  // Nếu là admin, hiển thị trang quản trị
 
   const menuItems = [
     { section: 'TỔNG HỢP' },
@@ -129,25 +143,28 @@ function App() {
               fontSize: '20px'
             }}>👤</div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: 'white', fontSize: '16px', fontWeight: 600, marginBottom: '2px' }}>Admin</div>
-              <div style={{ color: '#9ca3af', fontSize: '13px' }}>Quản trị viên</div>
+              <div style={{ color: 'white', fontSize: '16px', fontWeight: 600, marginBottom: '2px' }}>{currentUser.name}</div>
+              <div style={{ color: '#9ca3af', fontSize: '13px' }}>{currentUser.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}</div>
             </div>
-            <button style={{ 
-              width: '40px', 
-              height: '40px', 
-              background: '#2d3748',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#9ca3af',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              transition: 'background 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#374151'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#2d3748'}
+            <button 
+              onClick={() => setCurrentUser(null)}
+              style={{ 
+                width: '40px', 
+                height: '40px', 
+                background: '#2d3748',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#374151'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#2d3748'}
+              title="Đăng xuất"
             >
               ↗
             </button>
