@@ -21,8 +21,10 @@ interface StoreState {
   orders: Order[]
   customers: Customer[]
   categories: Category[]
+  currentUser: { id: number; email: string; name: string; role: 'admin' | 'user' } | null
   currentPage: 'dashboard' | 'products' | 'orders' | 'customers' | 'category' | 'users' | 'user-mgmt' | 'audit' | 'promo' | 'shipping' | 'warranty' | 'reports' | 'rights' | 'inventory'
   setCurrentPage: (page: 'dashboard' | 'products' | 'orders' | 'customers' | 'category' | 'users' | 'user-mgmt' | 'audit' | 'promo' | 'shipping' | 'warranty' | 'reports' | 'rights' | 'inventory') => void
+  setCurrentUser: (user: { id: number; email: string; name: string; role: 'admin' | 'user' } | null) => void
   addProduct: (product: ProductWithImage) => void
   updateProduct: (id: number, product: Partial<ProductWithImage>) => void
   deleteProduct: (id: number) => void
@@ -34,6 +36,7 @@ interface StoreState {
 
 export const useStore = create<StoreState>((set) => ({
   currentPage: 'dashboard',
+  currentUser: null,
   
   products: [
     { 
@@ -123,6 +126,8 @@ export const useStore = create<StoreState>((set) => ({
   ],
 
   setCurrentPage: (page) => set({ currentPage: page }),
+  
+  setCurrentUser: (user) => set({ currentUser: user }),
   
   addProduct: (product) => set((state) => ({ 
     products: [...state.products, product] 
