@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import Header from './Header'
+import '../styles/khuyen-mai.css'
 import { api, type ApiVoucher } from '../api'
 
 type VoucherForm = {
@@ -165,7 +166,7 @@ function Promo() {
   }
 
   return (
-    <div style={{ color: 'white', minHeight: '100vh' }}>
+    <div className="khuyen-mai-page">
       <Header
         title="KHUYẾN MÃI & VOUCHER"
         searchValue={searchTerm}
@@ -173,18 +174,18 @@ function Promo() {
         searchPlaceholder="Tìm kiếm voucher..."
       />
 
-      <div style={{ padding: '40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '18px', marginBottom: '24px' }}>
+      <div className="khuyen-mai-page__content">
+        <div className="khuyen-mai-page__stats">
           {stats.map((stat) => (
-            <div key={stat.label} style={statCardStyle}>
+            <div key={stat.label} className="khuyen-mai-page__stat" style={statCardStyle}>
               <div style={{ color: stat.color, fontSize: '13px', fontWeight: 700 }}>{stat.label}</div>
               <div style={{ fontSize: '30px', fontWeight: 800, marginTop: '8px' }}>{stat.value}</div>
             </div>
           ))}
         </div>
 
-        <div style={panelStyle}>
-          <div style={toolbarStyle}>
+        <div className="khuyen-mai-page__panel" style={panelStyle}>
+          <div className="khuyen-mai-page__toolbar" style={toolbarStyle}>
             <div style={{ color: '#8b92a7' }}>{loading ? 'Đang tải...' : error || `Hiển thị ${filtered.length} voucher`}</div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
@@ -197,7 +198,7 @@ function Promo() {
             </div>
           </div>
 
-          <table style={tableStyle}>
+          <table className="khuyen-mai-page__table" style={tableStyle}>
             <thead>
               <tr style={headRowStyle}>
                 <th style={thStyle}>Mã</th>
