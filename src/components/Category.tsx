@@ -1,183 +1,176 @@
-import { useState } from 'react'
-import { useStore } from '../store/useStore'
+import { useMemo, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { api } from '../api'
+import { DEFAULT_CATEGORIES, useStore } from '../store/useStore'
 import Header from './Header'
 
-interface Category {
-  id: number
+type CategoryForm = {
   name: string
   description: string
-  productCount: number
   parentCategory: string
-  status: 'active' | 'inactive'
+}
+
+const emptyForm: CategoryForm = {
+  name: '',
+  description: '',
+  parentCategory: '',
+}
+
+const normalizeDisplayText = (value: string) => {
+  const replacements: Record<string, string> = {
+    'Kh?c': 'Khác',
+    'Kh�c': 'Khác',
+    'Di?n t?': 'Điện tử',
+    '?i?n t?': 'Điện tử',
+  }
+
+  return replacements[value] ?? value
 }
 
 function Category() {
   const categories = useStore((state) => state.categories)
   const setCategories = useStore((state) => state.setCategories)
-  const addCategory = useStore((state) => state.addCategory)
-  const updateCategory = useStore((state) => state.updateCategory)
-  const deleteCategory = useStore((state) => state.deleteCategory)
+  const visibleCategories = categories.length > 0 ? categories : DEFAULT_CATEGORIES
 
-  const [selectedAll, setSelectedAll] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  const [selectedItems, setSelectedItems] = useState<number[]>([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
+  const [editTargetId, setEditTargetId] = useState<number | null>(null)
+  const [form, setForm] = useState<CategoryForm>(emptyForm)
 
-  const [newCategory, setNewCategory] = useState({
-    name: '',
-    description: '',
-    parentCategory: '',
-    isNewParent: false,
-    newParentName: ''
-  })
+  const filteredCategories = useMemo(
+    () =>
+      visibleCategories.filter((category) =>
+        category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        category.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        category.parentCategory.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    [visibleCategories, searchTerm],
+  )
 
-  const [editCategory, setEditCategory] = useState({
-    name: '',
-    description: '',
-    parentCategory: '',
-    isNewParent: false,
-    newParentName: ''
-  })
+  const selectedCategory = selectedCategoryId
+    ? visibleCategories.find((category) => category.id === selectedCategoryId) ?? null
+    : null
 
-  const selectedCategory = selectedCategoryId ? categories.find(c => c.id === selectedCategoryId) : null
-  
-  const filteredCategories = categories.filter(cat => {
-    const matchesSearch = cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cat.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || cat.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
-
-  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentCategories = filteredCategories.slice(startIndex, endIndex)
-
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedAll(checked)
-    if (checked) {
-      setSelectedItems(filteredCategories.map(c => c.id))
-    } else {
-      setSelectedItems([])
-    }
+  const openAddModal = () => {
+    setForm(emptyForm)
+    setShowAddModal(true)
   }
 
-  const handleSelectItem = (id: number) => {
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter(i => i !== id))
-      setSelectedAll(false)
-    } else {
-      const newSelected = [...selectedItems, id]
-      setSelectedItems(newSelected)
-      if (newSelected.length === filteredCategories.length) {
-        setSelectedAll(true)
-      }
-    }
-  }
-
-  const handleAddCategory = () => {
-    if (!newCategory.name || !newCategory.description) {
-      alert('Vui lòng điền đầy đủ thông tin!')
-      return
-    }
-
-    if (newCategory.isNewParent && !newCategory.newParentName) {
-      alert('Vui lòng nhập tên danh mục cha mới!')
-      return
-    }
-
-    if (!newCategory.isNewParent && !newCategory.parentCategory) {
-      alert('Vui lòng chọn danh mục cha!')
-      return
-    }
-
-    const parentCat = newCategory.isNewParent ? newCategory.newParentName : newCategory.parentCategory
-
-    const newId = Math.max(...categories.map(c => c.id)) + 1
-    addCategory({
-      id: newId,
-      name: newCategory.name,
-      description: newCategory.description,
-      parentCategory: parentCat,
-      productCount: 0,
-      status: 'active'
-    })
-
-    setNewCategory({ name: '', description: '', parentCategory: '', isNewParent: false, newParentName: '' })
-    setShowAddModal(false)
-    alert('Đã thêm danh mục thành công!')
-  }
-
-  const handleOpenEdit = (category: Category) => {
-    setSelectedCategoryId(category.id)
-    setEditCategory({
-      name: category.name,
-      description: category.description,
-      parentCategory: category.parentCategory,
-      isNewParent: false,
-      newParentName: ''
+  const openEditModal = (category: (typeof visibleCategories)[number]) => {
+    setEditTargetId(category.id)
+    setForm({
+      name: normalizeDisplayText(category.name),
+      description: normalizeDisplayText(category.description),
+      parentCategory: normalizeDisplayText(category.parentCategory),
     })
     setShowEditModal(true)
   }
 
-  const handleUpdateCategory = () => {
-    if (!editCategory.name || !editCategory.description) {
+  const handleCreate = async () => {
+    if (!form.name || !form.description) {
       alert('Vui lòng điền đầy đủ thông tin!')
       return
     }
 
-    if (editCategory.isNewParent && !editCategory.newParentName) {
-      alert('Vui lòng nhập tên danh mục cha mới!')
-      return
-    }
-
-    if (!editCategory.isNewParent && !editCategory.parentCategory) {
-      alert('Vui lòng chọn danh mục cha!')
-      return
-    }
-
-    const parentCat = editCategory.isNewParent ? editCategory.newParentName : editCategory.parentCategory
-
-    if (selectedCategoryId) {
-      updateCategory(selectedCategoryId, {
-        name: editCategory.name,
-        description: editCategory.description,
-        parentCategory: parentCat
+    try {
+      const created = await api.createCategory({
+        name: form.name,
+        description: form.description,
+        parentCategory: form.parentCategory || undefined,
       })
 
+      setCategories([
+        ...visibleCategories,
+        {
+          id: created.id,
+          name: created.name,
+          description: created.description ?? '',
+          productCount: created.productCount ?? 0,
+          parentCategory: created.parentCategory ?? '',
+          status: created.status ?? 'active',
+        },
+      ])
+
+      setShowAddModal(false)
+      setForm(emptyForm)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Thêm danh mục thất bại')
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (!editTargetId) return
+
+    if (!form.name || !form.description) {
+      alert('Vui lòng điền đầy đủ thông tin!')
+      return
+    }
+
+    try {
+      const updated = await api.updateCategory(editTargetId, {
+        name: form.name,
+        description: form.description,
+        parentCategory: form.parentCategory || null,
+      })
+
+      setCategories(
+        visibleCategories.map((category) =>
+          category.id === editTargetId
+            ? {
+                ...category,
+                name: updated.name,
+                description: updated.description ?? '',
+                parentCategory: updated.parentCategory ?? '',
+                status: updated.status ?? category.status,
+                productCount: updated.productCount ?? category.productCount,
+              }
+            : category,
+        ),
+      )
+
       setShowEditModal(false)
-      setSelectedCategoryId(null)
-      alert('Đã cập nhật danh mục thành công!')
+      setEditTargetId(null)
+      setForm(emptyForm)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Cập nhật danh mục thất bại')
     }
   }
 
-  const handleDelete = (id: number) => {
-    if (confirm('Bạn có chắc muốn xóa danh mục này?')) {
-      deleteCategory(id)
-      alert('Đã xóa danh mục!')
+  const handleDelete = async (id: number) => {
+    if (!confirm('Bạn có chắc muốn xóa danh mục này?')) return
+
+    try {
+      await api.deleteCategory(id)
+      setCategories(visibleCategories.filter((category) => category.id !== id))
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Xóa danh mục thất bại')
     }
   }
 
-  const handleViewDetail = (category: Category) => {
-    setSelectedCategoryId(category.id)
-    setShowDetailModal(true)
-  }
+  const handleToggleStatus = async (category: (typeof visibleCategories)[number]) => {
+    try {
+      const nextStatus = category.status === 'active' ? 'inactive' : 'active'
+      const updated = await api.updateCategory(category.id, { status: nextStatus })
 
-  const stats = [
-    { label: 'Tổng danh mục', value: filteredCategories.length, subtext: 'Đang hoạt động' },
-    { label: 'Sản phẩm', value: filteredCategories.reduce((sum, cat) => sum + cat.productCount, 0), subtext: 'Tổng sản phẩm' },
-    { label: 'Danh mục cha', value: new Set(filteredCategories.map(c => c.parentCategory)).size, subtext: '' },
-  ]
+      setCategories(
+        visibleCategories.map((item) =>
+          item.id === category.id
+            ? {
+                ...item,
+                status: updated.status ?? nextStatus,
+              }
+            : item,
+        ),
+      )
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Cập nhật trạng thái thất bại')
+    }
+  }
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <Header 
+      <Header
         title="QUẢN LÝ DANH MỤC"
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -185,699 +178,251 @@ function Category() {
       />
 
       <div style={{ padding: '40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
-          {stats.map((stat, idx) => (
-            <div key={idx} style={{ background: '#1a1f2e', padding: '24px', borderRadius: '10px', border: '1px solid #2a2f3e' }}>
-              <div style={{ fontSize: '36px', fontWeight: 700, color: 'white', marginBottom: '8px' }}>{stat.value}</div>
-              <div style={{ fontSize: '15px', color: '#8b92a7', marginBottom: '4px' }}>{stat.label}</div>
-              {stat.subtext && <div style={{ fontSize: '13px', color: '#6b7280' }}>{stat.subtext}</div>}
-            </div>
-          ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ color: '#8b92a7' }}>Hiển thị {filteredCategories.length} danh mục</div>
+          <button
+            onClick={openAddModal}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              background: '#f97316',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 700,
+            }}
+          >
+            + Thêm danh mục
+          </button>
         </div>
 
-        <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
-          <div style={{ 
-            padding: '20px 24px', 
-            borderBottom: '1px solid #2a2f3e',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{ fontSize: '14px', color: 'white', fontWeight: 500 }}>Tất cả danh mục</div>
-              {selectedItems.length > 0 && (
-                <>
-                  <div style={{ fontSize: '13px', color: '#8b92a7' }}>({selectedItems.length} đã chọn)</div>
-                  <button 
-                    onClick={() => {
-                      if (confirm(`Bạn có chắc muốn xóa ${selectedItems.length} danh mục đã chọn?`)) {
-                        setCategories(categories.filter(c => !selectedItems.includes(c.id)))
-                        setSelectedItems([])
-                        setSelectedAll(false)
-                        alert('Đã xóa các danh mục!')
-                      }
-                    }}
-                    style={{ 
-                      padding: '6px 14px', 
-                      background: '#ef4444', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '6px', 
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 500
-                    }}
-                  >
-                    Xóa đã chọn
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setCategories(categories.map(c => 
-                        selectedItems.includes(c.id) ? { ...c, status: 'active' as const } : c
-                      ))
-                      setSelectedItems([])
-                      setSelectedAll(false)
-                    }}
-                    style={{ 
-                      padding: '6px 14px', 
-                      background: '#10b981', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '6px', 
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 500
-                    }}
-                  >
-                    Kích hoạt
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setCategories(categories.map(c => 
-                        selectedItems.includes(c.id) ? { ...c, status: 'inactive' as const } : c
-                      ))
-                      setSelectedItems([])
-                      setSelectedAll(false)
-                      alert('Đã tắt các danh mục!')
-                    }}
-                    style={{ 
-                      padding: '6px 14px', 
-                      background: '#6b7280', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '6px', 
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 500
-                    }}
-                  >
-                    Tắt
-                  </button>
-                </>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button 
-                onClick={() => setShowAddModal(true)}
-                style={{ 
-                  padding: '8px 18px', 
-                  background: '#f97316', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '6px', 
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#ea580c'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#f97316'}
-              >
-                + Thêm danh mục
-              </button>
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-                style={{
-                  padding: '8px 12px',
-                  background: '#0f1419',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  color: 'white',
-                  fontSize: '13px',
-                  cursor: 'pointer'
-                }}>
-                <option value="all">Tất cả</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="inactive">Không hoạt động</option>
-              </select>
-            </div>
-          </div>
-          
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #2a2f3e', fontSize: '12px', color: '#6b7280' }}>
-            Hiện thị {startIndex + 1}-{Math.min(endIndex, filteredCategories.length)} trong {filteredCategories.length} kết quả
-          </div>
-
+        <div style={{ background: '#1a1f2e', border: '1px solid #2a2f3e', borderRadius: '12px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
-                <th style={{ padding: '20px 28px', textAlign: 'left', width: '50px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedAll}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    style={{ cursor: 'pointer', width: '20px', height: '20px' }}
-                  />
-                </th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>STT</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>TÊN DANH MỤC</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>MÔ DANH MỤC</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>SẢN PHẨM</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>DANH MỤC CHA</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>TRẠNG THÁI</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>THAO TÁC</th>
+                <th style={thStyle}>Tên danh mục</th>
+                <th style={thStyle}>Mô tả</th>
+                <th style={thStyle}>Danh mục cha</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Sản phẩm</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Trạng thái</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Hành động</th>
               </tr>
             </thead>
             <tbody>
-              {currentCategories.map((category, index) => (
-                <tr key={category.id} style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#0f1419'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '24px 28px' }}>
-                    <input type="checkbox" checked={selectedItems.includes(category.id)} onChange={() => handleSelectItem(category.id)} style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
-                  </td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{startIndex + index + 1}</td>
-                  <td style={{ padding: '24px 28px', color: 'white', fontSize: '16px', fontWeight: 500 }}>{category.name}</td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{category.description}</td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px', textAlign: 'center' }}>{category.productCount}</td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{category.parentCategory}</td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <span style={{ 
-                        padding: '6px 14px', 
-                        borderRadius: '6px', 
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        background: category.status === 'active' ? '#10b98120' : '#ef444420',
-                        color: category.status === 'active' ? '#10b981' : '#ef4444',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                    >
-                      {category.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-                    </span>
-                    </div>
-                  </td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <button 
-                        onClick={() => handleViewDetail(category)}
-                        style={{ 
-                          padding: '10px 20px', 
-                          background: '#3b82f6', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '7px', 
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#3b82f6'}
-                      >
-                        Chi tiết
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(category.id)}
-                        style={{ 
-                          padding: '10px 20px', 
-                          background: '#ef4444', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '7px', 
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
-                      >
-                        Xóa
-                      </button>
-                    </div>
+              {filteredCategories.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', padding: '36px 18px', color: '#8b92a7' }}>
+                    Không có danh mục nào
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredCategories.map((category) => (
+                  <tr key={category.id} style={{ borderBottom: '1px solid #2a2f3e' }}>
+                    <td style={tdStyle}>{normalizeDisplayText(category.name)}</td>
+                    <td style={tdStyle}>{normalizeDisplayText(category.description)}</td>
+                    <td style={tdStyle}>{normalizeDisplayText(category.parentCategory || '-')}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>{category.productCount}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <span style={badgeStyle(category.status === 'active' ? '#10b981' : '#ef4444')}>
+                        {category.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                      </span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button onClick={() => setSelectedCategoryId(category.id)} style={actionButton('#3b82f6')}>
+                          Chi tiết
+                        </button>
+                        <button onClick={() => openEditModal(category)} style={actionButton('#10b981')}>
+                          Sửa
+                        </button>
+                        <button onClick={() => handleToggleStatus(category)} style={actionButton('#7c3aed')}>
+                          {category.status === 'active' ? 'Tắt' : 'Bật'}
+                        </button>
+                        <button onClick={() => handleDelete(category.id)} style={actionButton('#ef4444')}>
+                          Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{ 
-              padding: '20px 24px', 
-              borderTop: '1px solid #2a2f3e',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === 1 ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === 1 ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                ← Trước
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  style={{
-                    padding: '8px 14px',
-                    background: currentPage === page ? '#f97316' : '#2a2f3e',
-                    color: 'white',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: currentPage === page ? 600 : 500,
-                    minWidth: '40px'
-                  }}
-                >
-                  {page}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === totalPages ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === totalPages ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                Sau →
-              </button>
-            </div>
-          )}
         </div>
+      </div>
 
-        {/* Modal Thêm Danh Mục */}
-        {showAddModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowAddModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '500px',
-              width: '90%'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Thêm Danh Mục Mới</h2>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Tên danh mục</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập tên danh mục"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
+      {showAddModal && (
+        <Modal title="Thêm danh mục mới" onClose={() => setShowAddModal(false)} onSubmit={handleCreate} submitLabel="Thêm danh mục">
+          <FormFields form={form} setForm={setForm} />
+        </Modal>
+      )}
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Mô tả</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập mô tả"
-                  value={newCategory.description}
-                  onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
+      {showEditModal && (
+        <Modal title="Chỉnh sửa danh mục" onClose={() => setShowEditModal(false)} onSubmit={handleUpdate} submitLabel="Cập nhật">
+          <FormFields form={form} setForm={setForm} />
+        </Modal>
+      )}
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Danh mục cha</label>
-                <select 
-                  value={newCategory.isNewParent ? 'new' : newCategory.parentCategory}
-                  onChange={(e) => {
-                    if (e.target.value === 'new') {
-                      setNewCategory({...newCategory, isNewParent: true, parentCategory: ''})
-                    } else {
-                      setNewCategory({...newCategory, isNewParent: false, parentCategory: e.target.value, newParentName: ''})
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    cursor: 'pointer'
-                  }}>
-                  <option value="">Chọn danh mục cha</option>
-                  <option value="Điện tử">Điện tử</option>
-                  <option value="Phụ kiện">Phụ kiện</option>
-                  <option value="Thời trang">Thời trang</option>
-                  <option value="Gia dụng">Gia dụng</option>
-                  <option value="new" style={{ color: '#f97316', fontWeight: 600 }}>+ Tạo danh mục cha mới</option>
-                </select>
-                
-                {newCategory.isNewParent && (
-                  <input 
-                    type="text" 
-                    placeholder="Nhập tên danh mục cha mới"
-                    value={newCategory.newParentName}
-                    onChange={(e) => setNewCategory({...newCategory, newParentName: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px',
-                      marginTop: '12px'
-                    }} 
-                  />
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setNewCategory({ name: '', description: '', parentCategory: '', isNewParent: false, newParentName: '' })
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleAddCategory}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#f97316',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Thêm Danh Mục
-                </button>
-              </div>
-            </div>
+      {selectedCategory && (
+        <Modal title="Chi tiết danh mục" onClose={() => setSelectedCategoryId(null)} hideSubmit>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <div><strong>Tên:</strong> {normalizeDisplayText(selectedCategory.name)}</div>
+            <div><strong>Mô tả:</strong> {normalizeDisplayText(selectedCategory.description)}</div>
+            <div><strong>Danh mục cha:</strong> {normalizeDisplayText(selectedCategory.parentCategory || '-')}</div>
+            <div><strong>Sản phẩm:</strong> {selectedCategory.productCount}</div>
+            <div><strong>Trạng thái:</strong> {selectedCategory.status}</div>
           </div>
-        )}
+        </Modal>
+      )}
+    </div>
+  )
+}
 
-        {/* Modal Chi Tiết */}
-        {showDetailModal && selectedCategory && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowDetailModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '500px',
-              width: '90%'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Chi Tiết Danh Mục</h2>
-              
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', color: '#8b92a7', marginBottom: '6px' }}>Tên danh mục</div>
-                <div style={{ fontSize: '18px', color: 'white', fontWeight: 600 }}>{selectedCategory.name}</div>
-              </div>
+function FormFields({
+  form,
+  setForm,
+}: {
+  form: CategoryForm
+  setForm: Dispatch<SetStateAction<CategoryForm>>
+}) {
+  return (
+    <div style={{ display: 'grid', gap: '14px' }}>
+      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên danh mục" style={inputStyle} />
+      <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Mô tả" style={inputStyle} />
+      <input value={form.parentCategory} onChange={(e) => setForm({ ...form, parentCategory: e.target.value })} placeholder="Danh mục cha" style={inputStyle} />
+    </div>
+  )
+}
 
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', color: '#8b92a7', marginBottom: '6px' }}>Mô tả</div>
-                <div style={{ fontSize: '15px', color: 'white' }}>{selectedCategory.description}</div>
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', color: '#8b92a7', marginBottom: '6px' }}>Danh mục cha</div>
-                <div style={{ fontSize: '15px', color: 'white' }}>{selectedCategory.parentCategory}</div>
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '14px', color: '#8b92a7', marginBottom: '6px' }}>Số sản phẩm</div>
-                <div style={{ fontSize: '24px', color: '#3b82f6', fontWeight: 700 }}>{selectedCategory.productCount}</div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => setShowDetailModal(false)}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Đóng
-                </button>
-                <button 
-                  onClick={() => {
-                    setShowDetailModal(false)
-                    handleOpenEdit(selectedCategory)
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Chỉnh Sửa
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal Chỉnh Sửa */}
-        {showEditModal && selectedCategory && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowEditModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '500px',
-              width: '90%'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Chỉnh Sửa Danh Mục</h2>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Tên danh mục</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập tên danh mục"
-                  value={editCategory.name}
-                  onChange={(e) => setEditCategory({...editCategory, name: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Mô tả</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập mô tả"
-                  value={editCategory.description}
-                  onChange={(e) => setEditCategory({...editCategory, description: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Danh mục cha</label>
-                <select 
-                  value={editCategory.isNewParent ? 'new' : editCategory.parentCategory}
-                  onChange={(e) => {
-                    if (e.target.value === 'new') {
-                      setEditCategory({...editCategory, isNewParent: true, parentCategory: ''})
-                    } else {
-                      setEditCategory({...editCategory, isNewParent: false, parentCategory: e.target.value, newParentName: ''})
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    cursor: 'pointer'
-                  }}>
-                  <option value="">Chọn danh mục cha</option>
-                  <option value="Điện tử">Điện tử</option>
-                  <option value="Phụ kiện">Phụ kiện</option>
-                  <option value="Thời trang">Thời trang</option>
-                  <option value="Gia dụng">Gia dụng</option>
-                  <option value="new" style={{ color: '#f97316', fontWeight: 600 }}>+ Tạo danh mục cha mới</option>
-                </select>
-                
-                {editCategory.isNewParent && (
-                  <input 
-                    type="text" 
-                    placeholder="Nhập tên danh mục cha mới"
-                    value={editCategory.newParentName}
-                    onChange={(e) => setEditCategory({...editCategory, newParentName: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px',
-                      marginTop: '12px'
-                    }} 
-                  />
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => {
-                    setShowEditModal(false)
-                    setEditCategory({ name: '', description: '', parentCategory: '', isNewParent: false, newParentName: '' })
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleUpdateCategory}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Cập Nhật
-                </button>
-              </div>
-            </div>
+function Modal({
+  title,
+  onClose,
+  onSubmit,
+  submitLabel = 'Lưu',
+  hideSubmit = false,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  onSubmit?: () => void
+  submitLabel?: string
+  hideSubmit?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
+          <h2 style={{ margin: 0, fontSize: '20px' }}>{title}</h2>
+          <button onClick={onClose} style={closeButtonStyle}>×</button>
+        </div>
+        {children}
+        {!hideSubmit && onSubmit && (
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button onClick={onClose} style={secondaryButtonStyle}>Hủy</button>
+            <button onClick={onSubmit} style={primaryButtonStyle}>{submitLabel}</button>
           </div>
         )}
       </div>
     </div>
   )
+}
+
+const thStyle: CSSProperties = {
+  padding: '16px 18px',
+  textAlign: 'left',
+  color: '#8b92a7',
+  fontSize: '12px',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '1px',
+}
+
+const tdStyle: CSSProperties = {
+  padding: '16px 18px',
+  color: '#cbd5e1',
+}
+
+const inputStyle: CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  background: '#0f1419',
+  border: '1px solid #2a2f3e',
+  borderRadius: '10px',
+  color: 'white',
+}
+
+const overlayStyle: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.75)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '24px',
+  zIndex: 1000,
+}
+
+const modalStyle: CSSProperties = {
+  width: 'min(100%, 640px)',
+  background: '#1a1f2e',
+  border: '1px solid #2a2f3e',
+  borderRadius: '16px',
+  padding: '24px',
+}
+
+const closeButtonStyle: CSSProperties = {
+  width: '36px',
+  height: '36px',
+  borderRadius: '10px',
+  border: '1px solid #2a2f3e',
+  background: '#0f1419',
+  color: 'white',
+  cursor: 'pointer',
+  fontSize: '20px',
+}
+
+const primaryButtonStyle: CSSProperties = {
+  padding: '10px 16px',
+  borderRadius: '10px',
+  border: 'none',
+  background: '#7a73ea',
+  color: 'white',
+  cursor: 'pointer',
+  fontWeight: 700,
+}
+
+const secondaryButtonStyle: CSSProperties = {
+  padding: '10px 16px',
+  borderRadius: '10px',
+  border: '1px solid #2a2f3e',
+  background: '#0f1419',
+  color: 'white',
+  cursor: 'pointer',
+  fontWeight: 700,
+}
+
+function actionButton(color: string): CSSProperties {
+  return {
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: 'none',
+    background: color,
+    color: 'white',
+    cursor: 'pointer',
+    fontWeight: 700,
+  }
+}
+
+function badgeStyle(color: string): CSSProperties {
+  return {
+    padding: '6px 12px',
+    borderRadius: '999px',
+    background: `${color}20`,
+    color,
+    fontWeight: 700,
+    fontSize: '13px',
+  }
 }
 
 export default Category
