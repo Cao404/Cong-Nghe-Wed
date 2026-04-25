@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useStore } from '../store/useStore'
 import { api } from '../api'
+import '../styles/cua-hang.css'
 
 const moneyFormatter = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -177,6 +178,7 @@ function Shop() {
 
   const topBar = (backTo?: 'shop' | 'cart') => (
     <div
+      className="cua-hang-topbar"
       style={{
         background: 'linear-gradient(135deg, #6f76e6 0%, #7f4eb6 52%, #8a4aa0 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -282,7 +284,7 @@ function Shop() {
 
   if (viewMode === 'cart') {
     return (
-      <div style={{ minHeight: '100vh', background: '#0d1117', color: 'white' }}>
+      <div className="cua-hang-page">
         {topBar('shop')}
         <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
           {cartItems.length === 0 ? (
@@ -421,7 +423,7 @@ function Shop() {
 
   if (viewMode === 'checkout') {
     return (
-      <div style={{ minHeight: '100vh', background: '#0d1117', color: 'white' }}>
+      <div className="cua-hang-page">
         {topBar('cart')}
         <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.7fr)', gap: '20px' }}>
@@ -598,7 +600,7 @@ function Shop() {
 
   if (viewMode === 'orders') {
     return (
-      <div style={{ minHeight: '100vh', background: '#0d1117', color: 'white' }}>
+      <div className="cua-hang-page">
         {topBar('shop')}
         <div style={{ maxWidth: '1040px', margin: '0 auto', padding: '24px', display: 'grid', gap: '16px' }}>
           {myOrders.length === 0 ? (
@@ -682,7 +684,7 @@ function Shop() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d1117', color: 'white' }}>
+    <div className="cua-hang-page">
       <div
         style={{
           background: 'linear-gradient(135deg, #6f76e6 0%, #7f4eb6 52%, #8a4aa0 100%)',
