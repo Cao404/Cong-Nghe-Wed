@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from './store/useStore'
+import { api, type ApiOrder } from './api'
 import Dashboard from './components/Dashboard'
 import Products from './components/Products'
 import Orders from './components/Orders'
@@ -17,10 +18,133 @@ import Shop from './components/Shop'
 import OrderApproval from './components/OrderApproval'
 
 function App() {
-  const { currentPage, setCurrentPage, currentUser, setCurrentUser, pendingOrders } = useStore()
+  const { currentPage, setCurrentPage, currentUser, authToken, setCurrentUser, pendingOrders, setProducts, setCategories, setPendingOrders } = useStore()
   const [showOrderList, setShowOrderList] = useState(false)
 
   const pendingCount = pendingOrders.filter(o => o.status === 'pending').length
+
+  useEffect(() => {
+    let cancelled = false
+    let retryHandle: ReturnType<typeof setTimeout> | null = null
+
+    const loadAppData = async () => {
+      if (!currentUser) {
+        return
+      }
+
+      try {
+        let shouldRetry = false
+
+        const [productsResult, categoriesResult] = await Promise.allSettled([
+          api.getProducts(),
+          api.getCategories(),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        if (productsResult.status === 'fulfilled') {
+          setProducts(
+            productsResult.value.map((product) => ({
+              ...product,
+              sold: product.sold ?? 0,
+              description: product.description ?? '',
+            })),
+          )
+        } else {
+          console.error('Failed to load products:', productsResult.reason)
+          shouldRetry = true
+        }
+
+        if (categoriesResult.status === 'fulfilled' && categoriesResult.value.length > 0) {
+          setCategories(
+            categoriesResult.value.map((category) => ({
+              id: category.id,
+              name: category.name,
+              description: category.description ?? '',
+              productCount: category.productCount ?? 0,
+              parentCategory: category.parentCategory ?? '',
+              status: category.status ?? 'active',
+            })),
+          )
+        } else if (categoriesResult.status === 'rejected') {
+          console.error('Failed to load categories:', categoriesResult.reason)
+          shouldRetry = true
+        }
+
+        if (authToken) {
+          const ordersResult = await api.getOrders().then(
+            (orders) => ({ status: 'fulfilled' as const, value: orders }),
+            (reason) => ({ status: 'rejected' as const, reason }),
+          )
+
+          if (cancelled) {
+            return
+          }
+
+          if (ordersResult.status === 'fulfilled') {
+            setPendingOrders(ordersResult.value.map(mapOrder))
+          } else {
+            console.error('Failed to load orders:', ordersResult.reason)
+            shouldRetry = true
+          }
+        } else {
+          setPendingOrders([])
+        }
+
+        if (!cancelled && shouldRetry) {
+          retryHandle = setTimeout(() => {
+            void loadAppData()
+          }, 3000)
+        }
+      } catch (error) {
+        console.error('Failed to load app data:', error)
+        if (!cancelled) {
+          retryHandle = setTimeout(() => {
+            void loadAppData()
+          }, 3000)
+        }
+      }
+    }
+
+    void loadAppData()
+
+    return () => {
+      cancelled = true
+      if (retryHandle) {
+        clearTimeout(retryHandle)
+      }
+    }
+  }, [authToken, currentUser, setCategories, setPendingOrders, setProducts])
+
+  useEffect(() => {
+    const handleAuthInvalid = () => {
+      setCurrentUser(null)
+    }
+
+    window.addEventListener('shop:auth-invalid', handleAuthInvalid)
+    return () => window.removeEventListener('shop:auth-invalid', handleAuthInvalid)
+  }, [setCurrentUser])
+
+  function mapOrder(order: ApiOrder) {
+    return {
+      id: order.id,
+      orderCode: order.orderCode,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      items: order.items.map((item) => ({
+        productId: item.productId ?? item.id ?? 0,
+        productName: item.productName ?? item.name ?? 'Sản phẩm',
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image ?? '',
+      })),
+      total: order.total,
+      timestamp: order.createdAt ?? new Date().toISOString(),
+      status: order.status,
+    }
+  }
 
   // Nếu chưa đăng nhập, hiển thị trang Login
   if (!currentUser) {
@@ -39,6 +163,7 @@ function App() {
     { id: 'dashboard', label: 'Bảng điều khiển', icon: '📊' },
     { section: 'SẢN PHẨM' },
     { id: 'products', label: 'Danh sách', icon: '📦' },
+    { id: 'orders', label: 'Quản lý đơn hàng', icon: '🧾' },
     { section: 'DANH MỤC' },
     { id: 'category', label: 'Quản lý danh mục', icon: '☰' },
     { section: 'QUẢN TRỊ' },
