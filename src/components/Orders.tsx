@@ -1,103 +1,125 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { api, type ApiOrderHistoryEntry } from '../api'
+import { useStore } from '../store/useStore'
 import Header from './Header'
 
-interface Order {
-  id: number
-  orderCode: string
-  customer: string
-  products: number
-  total: number
-  status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled'
-  paymentMethod: string
-  date: string
-  shippingPartner?: string
-}
-
 function Orders() {
-  const [selectedAll, setSelectedAll] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<number[]>([])
-  const [activeTab, setActiveTab] = useState('all')
+  const orders = useStore((state) => state.pendingOrders)
+  const approveOrder = useStore((state) => state.approveOrder)
+  const updateOrderStatus = useStore((state) => state.updateOrderStatus)
+  const rejectOrder = useStore((state) => state.rejectOrder)
+
   const [searchTerm, setSearchTerm] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'shipping' | 'delivered' | 'rejected' | 'cancelled'>('all')
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
+  const [history, setHistory] = useState<ApiOrderHistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
-  const allOrders: Order[] = [
-    { id: 1, orderCode: 'ORD-2024-001', customer: 'Nguyễn Văn A', products: 3, total: 2500000, status: 'delivered', paymentMethod: 'COD', date: '2024-03-15', shippingPartner: 'GHN' },
-    { id: 2, orderCode: 'ORD-2024-002', customer: 'Trần Thị B', products: 1, total: 3000000, status: 'shipping', paymentMethod: 'Chuyển khoản', date: '2024-03-20', shippingPartner: 'GHTK' },
-    { id: 3, orderCode: 'ORD-2024-003', customer: 'Lê Văn C', products: 2, total: 1800000, status: 'confirmed', paymentMethod: 'Ví điện tử', date: '2024-03-22' },
-    { id: 4, orderCode: 'ORD-2024-004', customer: 'Phạm Thị D', products: 5, total: 4500000, status: 'pending', paymentMethod: 'COD', date: '2024-03-25' },
-    { id: 5, orderCode: 'ORD-2024-005', customer: 'Hoàng Văn E', products: 1, total: 2800000, status: 'delivered', paymentMethod: 'Chuyển khoản', date: '2024-03-26', shippingPartner: 'VTP' },
-    { id: 6, orderCode: 'ORD-2024-006', customer: 'Vũ Thị F', products: 4, total: 3200000, status: 'cancelled', paymentMethod: 'COD', date: '2024-03-28' },
-  ]
-
-  const orders = allOrders.filter(order => 
-    order.orderCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredOrders = useMemo(
+    () =>
+      orders.filter((order) => {
+        const matchesSearch =
+          order.orderCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesTab = activeTab === 'all' || order.status === activeTab
+        return matchesSearch && matchesTab
+      }),
+    [orders, activeTab, searchTerm],
   )
-
-  const filteredOrders = activeTab === 'all' ? orders : orders.filter(o => o.status === activeTab)
-  
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentOrders = filteredOrders.slice(startIndex, endIndex)
 
   const tabs = [
     { id: 'all', label: 'Tất cả', count: orders.length },
-    { id: 'pending', label: 'Chờ xác nhận', count: orders.filter(o => o.status === 'pending').length },
-    { id: 'confirmed', label: 'Đã xác nhận', count: orders.filter(o => o.status === 'confirmed').length },
-    { id: 'shipping', label: 'Đang giao', count: orders.filter(o => o.status === 'shipping').length },
-    { id: 'delivered', label: 'Đã giao', count: orders.filter(o => o.status === 'delivered').length },
-    { id: 'cancelled', label: 'Đã hủy', count: orders.filter(o => o.status === 'cancelled').length },
-  ]
+    { id: 'pending', label: 'Chờ duyệt', count: orders.filter((order) => order.status === 'pending').length },
+    { id: 'approved', label: 'Đã duyệt', count: orders.filter((order) => order.status === 'approved').length },
+    { id: 'shipping', label: 'Đang giao', count: orders.filter((order) => order.status === 'shipping').length },
+    { id: 'delivered', label: 'Đã giao', count: orders.filter((order) => order.status === 'delivered').length },
+    { id: 'rejected', label: 'Từ chối', count: orders.filter((order) => order.status === 'rejected').length },
+    { id: 'cancelled', label: 'Đã hủy', count: orders.filter((order) => order.status === 'cancelled').length },
+  ] as const
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: '#f59e0b',
-      confirmed: '#3b82f6',
-      shipping: '#8b5cf6',
-      delivered: '#10b981',
-      cancelled: '#ef4444'
-    }
-    return colors[status] || '#6b7280'
-  }
-
-  const getStatusText = (status: string) => {
-    const texts: Record<string, string> = {
-      pending: 'Chờ xác nhận',
-      confirmed: 'Đã xác nhận',
-      shipping: 'Đang giao',
-      delivered: 'Đã giao',
-      cancelled: 'Đã hủy'
-    }
-    return texts[status] || status
-  }
-
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedAll(checked)
-    if (checked) {
-      setSelectedItems(orders.map(o => o.id))
-    } else {
-      setSelectedItems([])
+  const syncStatus = async (id: number, status: 'approved' | 'shipping' | 'delivered' | 'rejected') => {
+    const updated = await api.updateOrderStatus(id, status)
+    updateOrderStatus(id, updated.status)
+    if (selectedOrderId === id) {
+      const refreshedHistory = await api.getOrderHistory(id)
+      setHistory(refreshedHistory)
     }
   }
 
-  const handleSelectItem = (id: number) => {
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter(i => i !== id))
-      setSelectedAll(false)
-    } else {
-      const newSelected = [...selectedItems, id]
-      setSelectedItems(newSelected)
-      if (newSelected.length === orders.length) {
-        setSelectedAll(true)
+  const handleApprove = async (id: number) => {
+    try {
+      await api.approveOrder(id)
+      approveOrder(id)
+      if (selectedOrderId === id) {
+        const refreshedHistory = await api.getOrderHistory(id)
+        setHistory(refreshedHistory)
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Duyệt đơn thất bại')
+    }
+  }
+
+  const handleReject = async (id: number) => {
+    try {
+      await api.rejectOrder(id)
+      rejectOrder(id)
+      if (selectedOrderId === id) {
+        const refreshedHistory = await api.getOrderHistory(id)
+        setHistory(refreshedHistory)
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Từ chối đơn thất bại')
+    }
+  }
+
+  const handleAdvance = async (id: number, status: 'shipping' | 'delivered') => {
+    try {
+      await syncStatus(id, status)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái')
+    }
+  }
+
+  const selectedOrder = selectedOrderId ? orders.find((order) => order.id === selectedOrderId) ?? null : null
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadHistory = async () => {
+      if (!selectedOrderId) {
+        setHistory([])
+        return
+      }
+
+      setHistoryLoading(true)
+      try {
+        const data = await api.getOrderHistory(selectedOrderId)
+        if (!cancelled) {
+          setHistory(data)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHistory([])
+          console.error('Failed to load order history:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false)
+        }
       }
     }
-  }
+
+    void loadHistory()
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedOrderId])
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <Header 
+      <Header
         title="QUẢN LÝ ĐƠN HÀNG"
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -105,234 +127,344 @@ function Orders() {
       />
 
       <div style={{ padding: '40px' }}>
-        <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
-          <div style={{ 
-            display: 'flex', 
-            borderBottom: '1px solid #2a2f3e',
-            overflowX: 'auto',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div style={{ display: 'flex' }}>
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    padding: '18px 28px',
-                    background: activeTab === tab.id ? '#0f1419' : 'transparent',
-                    color: activeTab === tab.id ? '#3b82f6' : '#8b92a7',
-                    border: 'none',
-                    borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: activeTab === tab.id ? 600 : 400,
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {tab.label} ({tab.count})
-                </button>
-              ))}
-            </div>
-            {selectedItems.length > 0 && (
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '0 24px' }}>
-                <div style={{ fontSize: '13px', color: '#8b92a7' }}>({selectedItems.length} đã chọn)</div>
-                <button 
-                  onClick={() => {
-                    alert(`In ${selectedItems.length} đơn hàng`)
-                    setSelectedItems([])
-                    setSelectedAll(false)
-                  }}
-                  style={{ 
-                    padding: '6px 14px', 
-                    background: '#3b82f6', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '6px', 
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: 500
-                  }}
-                >
-                  In đơn hàng
-                </button>
-                <button 
-                  onClick={() => {
-                    alert(`Xuất ${selectedItems.length} đơn hàng`)
-                    setSelectedItems([])
-                    setSelectedAll(false)
-                  }}
-                  style={{ 
-                    padding: '6px 14px', 
-                    background: '#10b981', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '6px', 
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    fontWeight: 500
-                  }}
-                >
-                  Xuất Excel
-                </button>
-              </div>
-            )}
-          </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '999px',
+                border: activeTab === tab.id ? '1px solid #8c85ef' : '1px solid #2a3140',
+                background: activeTab === tab.id ? '#7a73ea' : '#151a22',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
 
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #2a2f3e', fontSize: '12px', color: '#6b7280' }}>
-            Hiện thị 1-{orders.length} trong {orders.length} kết quả
-          </div>
-
+        <div style={{ background: '#1a1f2e', border: '1px solid #2a2f3e', borderRadius: '12px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
-                <th style={{ padding: '20px 28px', textAlign: 'left', width: '50px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedAll}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    style={{ cursor: 'pointer', width: '20px', height: '20px' }}
-                  />
-                </th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>MÃ ĐƠN</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>KHÁCH HÀNG</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>SẢN PHẨM</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>TỔNG TIỀN</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>THANH TOÁN</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>NGÀY ĐẶT</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>TRẠNG THÁI</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>THAO TÁC</th>
+                <th style={thStyle}>Mã đơn</th>
+                <th style={thStyle}>Khách hàng</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Sản phẩm</th>
+                <th style={thStyle}>Tổng tiền</th>
+                <th style={thStyle}>Thời gian</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Trạng thái</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Hành động</th>
               </tr>
             </thead>
             <tbody>
-              {currentOrders.map((order) => (
-                <tr key={order.id} style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#0f1419'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '24px 28px' }}>
-                    <input type="checkbox" checked={selectedItems.includes(order.id)} onChange={() => handleSelectItem(order.id)} style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
+              {filteredOrders.map((order) => (
+                <tr key={order.id} style={{ borderBottom: '1px solid #2a2f3e' }}>
+                  <td style={tdStyle}>{order.orderCode}</td>
+                  <td style={tdStyle}>
+                    <div style={{ color: 'white', fontWeight: 700 }}>{order.customerName}</div>
+                    <div style={{ color: '#8b92a7', fontSize: '13px' }}>{order.customerEmail}</div>
                   </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ color: '#3b82f6', fontSize: '15px', fontWeight: 600 }}>{order.orderCode}</div>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{order.items.length}</td>
+                  <td style={tdStyle}>{money(order.total)}</td>
+                  <td style={tdStyle}>{new Date(order.timestamp).toLocaleString('vi-VN')}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <span style={statusBadge(order.status)}>{statusText(order.status)}</span>
                   </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ color: 'white', fontSize: '16px', fontWeight: 500 }}>{order.customer}</div>
-                  </td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center', color: 'white', fontSize: '16px', fontWeight: 600 }}>
-                    {order.products}
-                  </td>
-                  <td style={{ padding: '24px 28px', color: 'white', fontSize: '16px', fontWeight: 600 }}>
-                    {order.total.toLocaleString('vi-VN')}₫
-                  </td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>
-                    {order.paymentMethod}
-                  </td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>
-                    {new Date(order.date).toLocaleDateString('vi-VN')}
-                  </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <span style={{ 
-                        padding: '6px 12px', 
-                        borderRadius: '6px', 
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        background: `${getStatusColor(order.status)}20`,
-                        color: getStatusColor(order.status)
-                      }}>
-                        {getStatusText(order.status)}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <button style={{ 
-                        padding: '8px 16px', 
-                        background: '#3b82f6', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: '6px', 
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: 500
-                      }}>
-                        Chi tiết
-                      </button>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button onClick={() => setSelectedOrderId(order.id)} style={actionButton('#3b82f6')}>Chi tiết</button>
+                      {order.status === 'pending' && (
+                        <>
+                          <button onClick={() => handleApprove(order.id)} style={actionButton('#10b981')}>Duyệt</button>
+                          <button onClick={() => handleReject(order.id)} style={actionButton('#ef4444')}>Từ chối</button>
+                        </>
+                      )}
+                      {order.status === 'approved' && (
+                        <button onClick={() => void handleAdvance(order.id, 'shipping')} style={actionButton('#3b82f6')}>
+                          Đang giao
+                        </button>
+                      )}
+                      {order.status === 'shipping' && (
+                        <button onClick={() => void handleAdvance(order.id, 'delivered')} style={actionButton('#14b8a6')}>
+                          Đã giao
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{ 
-              padding: '20px 24px', 
-              borderTop: '1px solid #2a2f3e',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === 1 ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === 1 ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                ← Trước
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  style={{
-                    padding: '8px 14px',
-                    background: currentPage === page ? '#f97316' : '#2a2f3e',
-                    color: 'white',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: currentPage === page ? 600 : 500,
-                    minWidth: '40px'
-                  }}
-                >
-                  {page}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === totalPages ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === totalPages ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                Sau →
-              </button>
-            </div>
-          )}
         </div>
       </div>
+
+      {selectedOrder && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            zIndex: 2000,
+          }}
+          onClick={() => setSelectedOrderId(null)}
+        >
+          <div
+            style={{
+              width: 'min(100%, 920px)',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              background: '#1a1f2e',
+              border: '1px solid #2a2f3e',
+              borderRadius: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div style={{ padding: '24px', borderBottom: '1px solid #2a2f3e', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '22px', color: 'white' }}>Chi tiết đơn hàng</h2>
+                <div style={{ marginTop: '8px', color: '#8b92a7' }}>
+                  {selectedOrder.orderCode} · {statusText(selectedOrder.status)}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedOrderId(null)}
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  border: '1px solid #2a2f3e',
+                  background: '#0f1419',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '24px', overflowY: 'auto', display: 'grid', gap: '18px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                <InfoCard label="Khách hàng" value={selectedOrder.customerName} subValue={selectedOrder.customerEmail} />
+                <InfoCard label="Tổng tiền" value={money(selectedOrder.total)} subValue={new Date(selectedOrder.timestamp).toLocaleString('vi-VN')} />
+                <InfoCard label="Trạng thái" value={statusText(selectedOrder.status)} subValue={selectedOrder.orderCode} />
+              </div>
+
+              <section style={panelStyle}>
+                <div style={sectionTitleStyle}>Lịch sử xử lý</div>
+                {historyLoading ? (
+                  <div style={emptyStateStyle}>Đang tải lịch sử...</div>
+                ) : history.length === 0 ? (
+                  <div style={emptyStateStyle}>Chưa có lịch sử xử lý.</div>
+                ) : (
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    {history.map((entry) => (
+                      <div key={entry.id} style={historyItemStyle}>
+                        <div>
+                          <div style={{ color: 'white', fontWeight: 700, marginBottom: '4px' }}>{entry.actorName}</div>
+                          <div style={{ color: '#8b92a7', fontSize: '13px' }}>{entry.note || historyActionLabel(entry.action)}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ color: '#3b82f6', fontWeight: 700, marginBottom: '4px' }}>{entry.toStatus ? statusText(entry.toStatus) : historyActionLabel(entry.action)}</div>
+                          <div style={{ color: '#8b92a7', fontSize: '12px' }}>{new Date(entry.createdAt).toLocaleString('vi-VN')}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section style={panelStyle}>
+                <div style={sectionTitleStyle}>Sản phẩm</div>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  {selectedOrder.items.map((item, index) => (
+                    <div key={index} style={lineItemStyle}>
+                      <div>
+                        <div style={{ color: 'white', fontWeight: 700 }}>{item.productName}</div>
+                        <div style={{ color: '#8b92a7', fontSize: '13px' }}>Số lượng: {item.quantity}</div>
+                      </div>
+                      <div style={{ color: '#f97316', fontWeight: 700 }}>{money(item.price)}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {selectedOrder.status === 'pending' && (
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <button onClick={() => handleReject(selectedOrder.id)} style={actionButton('#ef4444')}>Từ chối</button>
+                  <button onClick={() => handleApprove(selectedOrder.id)} style={actionButton('#10b981')}>Duyệt đơn</button>
+                </div>
+              )}
+              {selectedOrder.status === 'approved' && (
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <button onClick={() => void handleAdvance(selectedOrder.id, 'shipping')} style={actionButton('#3b82f6')}>
+                    Chuyển sang đang giao
+                  </button>
+                </div>
+              )}
+              {selectedOrder.status === 'shipping' && (
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <button onClick={() => void handleAdvance(selectedOrder.id, 'delivered')} style={actionButton('#14b8a6')}>
+                    Xác nhận đã giao
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+const thStyle: CSSProperties = {
+  padding: '16px 18px',
+  textAlign: 'left',
+  color: '#8b92a7',
+  fontSize: '12px',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '1px',
+}
+
+const tdStyle: CSSProperties = {
+  padding: '16px 18px',
+  color: '#cbd5e1',
+}
+
+function actionButton(color: string): CSSProperties {
+  return {
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: 'none',
+    background: color,
+    color: 'white',
+    cursor: 'pointer',
+    fontWeight: 700,
+  }
+}
+
+  function statusBadge(status: string): CSSProperties {
+  const colorMap: Record<string, string> = {
+    pending: '#f97316',
+    approved: '#10b981',
+    shipping: '#3b82f6',
+    delivered: '#14b8a6',
+    rejected: '#ef4444',
+    cancelled: '#6b7280',
+  }
+
+  const color = colorMap[status] ?? '#6b7280'
+
+  return {
+    padding: '6px 12px',
+    borderRadius: '999px',
+    background: `${color}20`,
+    color,
+    fontWeight: 700,
+    fontSize: '13px',
+  }
+}
+
+function statusText(status: string) {
+  const map: Record<string, string> = {
+    pending: 'Chờ duyệt',
+    approved: 'Đã duyệt',
+    shipping: 'Đang giao',
+    delivered: 'Đã giao',
+    rejected: 'Từ chối',
+    cancelled: 'Đã hủy',
+  }
+
+  return map[status] ?? status
+}
+
+function historyActionLabel(action: string) {
+  const map: Record<string, string> = {
+    created: 'Tạo đơn hàng',
+    approved: 'Duyệt đơn hàng',
+    shipping: 'Đang giao',
+    delivered: 'Đã giao',
+    rejected: 'Từ chối đơn hàng',
+    cancelled: 'Hủy đơn hàng',
+  }
+
+  return map[action] ?? action
+}
+
+function money(value: number) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function InfoCard({
+  label,
+  value,
+  subValue,
+}: {
+  label: string
+  value: string
+  subValue?: string
+}) {
+  return (
+    <div style={panelStyle}>
+      <div style={{ color: '#8b92a7', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>{label}</div>
+      <div style={{ color: 'white', fontSize: '18px', fontWeight: 700, marginBottom: subValue ? '6px' : 0 }}>{value}</div>
+      {subValue && <div style={{ color: '#8b92a7', fontSize: '13px' }}>{subValue}</div>}
+    </div>
+  )
+}
+
+const panelStyle: CSSProperties = {
+  background: '#151a22',
+  border: '1px solid #2a2f3e',
+  borderRadius: '14px',
+  padding: '18px',
+}
+
+const sectionTitleStyle: CSSProperties = {
+  color: 'white',
+  fontWeight: 700,
+  marginBottom: '14px',
+  fontSize: '16px',
+}
+
+const emptyStateStyle: CSSProperties = {
+  color: '#8b92a7',
+  padding: '18px 0',
+}
+
+const historyItemStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: '12px',
+  padding: '14px',
+  borderRadius: '12px',
+  background: '#0f1419',
+  border: '1px solid #2a2f3e',
+}
+
+const lineItemStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: '12px',
+  padding: '14px',
+  borderRadius: '12px',
+  background: '#0f1419',
+  border: '1px solid #2a2f3e',
 }
 
 export default Orders
