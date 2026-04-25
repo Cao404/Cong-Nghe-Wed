@@ -1,0 +1,5 @@
+﻿.van-chuyen-page { color: white; min-height: 100vh; }
+.van-chuyen-page__content { padding: 40px; }
+.van-chuyen-page__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-bottom: 24px; }
+.van-chuyen-page__panel { }
+.van-chuyen-page__toolbar { }

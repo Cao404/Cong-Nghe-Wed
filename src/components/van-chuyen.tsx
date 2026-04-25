@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import Header from './Header'
+import '../styles/van-chuyen.css'
 import { api, type ApiShippingPartner } from '../api'
 
 type PartnerForm = {
@@ -156,21 +157,21 @@ function Shipping() {
   }
 
   return (
-    <div style={{ color: 'white', minHeight: '100vh' }}>
+    <div className="van-chuyen-page">
       <Header title="VẬN CHUYỂN & ĐỐI TÁC" searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Tìm kiếm đối tác..." />
 
-      <div style={{ padding: '40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '18px', marginBottom: '24px' }}>
+      <div className="van-chuyen-page__content">
+        <div className="van-chuyen-page__stats">
           {stats.map((stat) => (
-            <div key={stat.label} style={statCardStyle}>
+            <div key={stat.label} className="van-chuyen-page__stat" style={statCardStyle}>
               <div style={{ color: stat.color, fontSize: '13px', fontWeight: 700 }}>{stat.label}</div>
               <div style={{ fontSize: '30px', fontWeight: 800, marginTop: '8px' }}>{stat.value}</div>
             </div>
           ))}
         </div>
 
-        <div style={panelStyle}>
-          <div style={toolbarStyle}>
+        <div className="van-chuyen-page__panel" style={panelStyle}>
+          <div className="van-chuyen-page__toolbar" style={toolbarStyle}>
             <div style={{ color: '#8b92a7' }}>{loading ? 'Đang tải...' : error || `Hiển thị ${filtered.length} đối tác`}</div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} style={selectStyle}>
