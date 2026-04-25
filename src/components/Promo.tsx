@@ -1,965 +1,374 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import Header from './Header'
+import { api, type ApiVoucher } from '../api'
 
-interface Voucher {
-  id: number
+type VoucherForm = {
   code: string
   name: string
   type: 'percentage' | 'fixed'
-  value: number
-  minOrder: number
-  maxDiscount: number
-  quantity: number
-  used: number
+  value: string
+  minOrder: string
+  maxDiscount: string
+  quantity: string
   startDate: string
   endDate: string
   status: 'active' | 'inactive' | 'expired'
 }
 
+const emptyForm: VoucherForm = {
+  code: '',
+  name: '',
+  type: 'percentage',
+  value: '',
+  minOrder: '',
+  maxDiscount: '',
+  quantity: '',
+  startDate: '',
+  endDate: '',
+  status: 'active',
+}
+
 function Promo() {
-  const [selectedAll, setSelectedAll] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<number[]>([])
+  const [vouchers, setVouchers] = useState<ApiVoucher[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'expired'>('all')
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedVoucherId, setSelectedVoucherId] = useState<number | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [form, setForm] = useState<VoucherForm>(emptyForm)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
 
-  const [vouchers, setVouchers] = useState<Voucher[]>([
-    { id: 1, code: 'SUMMER2024', name: 'Giảm giá mùa hè', type: 'percentage', value: 20, minOrder: 500000, maxDiscount: 100000, quantity: 100, used: 45, startDate: '2024-06-01', endDate: '2024-08-31', status: 'active' },
-    { id: 2, code: 'FREESHIP50K', name: 'Miễn phí vận chuyển', type: 'fixed', value: 50000, minOrder: 200000, maxDiscount: 50000, quantity: 200, used: 156, startDate: '2024-01-01', endDate: '2024-12-31', status: 'active' },
-    { id: 3, code: 'NEWUSER100K', name: 'Khách hàng mới', type: 'fixed', value: 100000, minOrder: 300000, maxDiscount: 100000, quantity: 500, used: 234, startDate: '2024-01-01', endDate: '2024-12-31', status: 'active' },
-    { id: 4, code: 'FLASH30', name: 'Flash Sale 30%', type: 'percentage', value: 30, minOrder: 1000000, maxDiscount: 300000, quantity: 50, used: 50, startDate: '2024-03-01', endDate: '2024-03-15', status: 'expired' },
-    { id: 5, code: 'VIP15', name: 'Ưu đãi VIP', type: 'percentage', value: 15, minOrder: 2000000, maxDiscount: 500000, quantity: 30, used: 12, startDate: '2024-03-01', endDate: '2024-06-30', status: 'active' },
-    { id: 6, code: 'WEEKEND200K', name: 'Cuối tuần vui vẻ', type: 'fixed', value: 200000, minOrder: 1500000, maxDiscount: 200000, quantity: 100, used: 67, startDate: '2024-03-01', endDate: '2024-04-30', status: 'active' },
-  ])
+  useEffect(() => {
+    let cancelled = false
 
-  const [newVoucher, setNewVoucher] = useState({
-    code: '',
-    name: '',
-    type: 'percentage' as 'percentage' | 'fixed',
-    value: '',
-    minOrder: '',
-    maxDiscount: '',
-    quantity: '',
-    startDate: '',
-    endDate: ''
-  })
-
-  const [editVoucher, setEditVoucher] = useState({
-    code: '',
-    name: '',
-    type: 'percentage' as 'percentage' | 'fixed',
-    value: '',
-    minOrder: '',
-    maxDiscount: '',
-    quantity: '',
-    startDate: '',
-    endDate: ''
-  })
-
-  const filteredVouchers = vouchers.filter(voucher => {
-    const matchesSearch = voucher.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      voucher.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || voucher.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
-
-  const totalPages = Math.ceil(filteredVouchers.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentVouchers = filteredVouchers.slice(startIndex, endIndex)
-
-  const selectedVoucher = selectedVoucherId ? vouchers.find(v => v.id === selectedVoucherId) : null
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: '#10b981',
-      inactive: '#6b7280',
-      expired: '#ef4444'
-    }
-    return colors[status] || '#6b7280'
-  }
-
-  const getStatusText = (status: string) => {
-    const texts: Record<string, string> = {
-      active: 'Đang hoạt động',
-      inactive: 'Tạm dừng',
-      expired: 'Hết hạn'
-    }
-    return texts[status] || status
-  }
-
-  const getTypeText = (type: string) => {
-    return type === 'percentage' ? 'Phần trăm' : 'Cố định'
-  }
-
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedAll(checked)
-    if (checked) {
-      setSelectedItems(currentVouchers.map(v => v.id))
-    } else {
-      setSelectedItems([])
-    }
-  }
-
-  const handleSelectItem = (id: number) => {
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter(i => i !== id))
-      setSelectedAll(false)
-    } else {
-      const newSelected = [...selectedItems, id]
-      setSelectedItems(newSelected)
-      if (newSelected.length === currentVouchers.length) {
-        setSelectedAll(true)
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await api.getVouchers()
+        if (!cancelled) setVouchers(data)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Không thể tải voucher')
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
-  }
 
-  const handleAddVoucher = () => {
-    if (!newVoucher.code || !newVoucher.name || !newVoucher.value || !newVoucher.minOrder || !newVoucher.maxDiscount || !newVoucher.quantity || !newVoucher.startDate || !newVoucher.endDate) {
-      alert('Vui lòng điền đầy đủ thông tin!')
-      return
+    void load()
+
+    return () => {
+      cancelled = true
     }
+  }, [])
 
-    const newId = Math.max(...vouchers.map(v => v.id)) + 1
-    setVouchers([...vouchers, {
-      id: newId,
-      code: newVoucher.code.toUpperCase(),
-      name: newVoucher.name,
-      type: newVoucher.type,
-      value: Number(newVoucher.value),
-      minOrder: Number(newVoucher.minOrder),
-      maxDiscount: Number(newVoucher.maxDiscount),
-      quantity: Number(newVoucher.quantity),
-      used: 0,
-      startDate: newVoucher.startDate,
-      endDate: newVoucher.endDate,
-      status: 'active'
-    }])
+  const filtered = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    return vouchers.filter((voucher) => {
+      const matchesTerm = !term || voucher.code.toLowerCase().includes(term) || voucher.name.toLowerCase().includes(term)
+      const matchesStatus = statusFilter === 'all' || voucher.status === statusFilter
+      return matchesTerm && matchesStatus
+    })
+  }, [searchTerm, statusFilter, vouchers])
 
-    setNewVoucher({ code: '', name: '', type: 'percentage', value: '', minOrder: '', maxDiscount: '', quantity: '', startDate: '', endDate: '' })
-    setShowAddModal(false)
-    alert('Đã tạo voucher thành công!')
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage))
+  const current = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const selectedVoucher = selectedId ? vouchers.find((voucher) => voucher.id === selectedId) ?? null : null
+
+  const stats = [
+    { label: 'Tổng voucher', value: vouchers.length, color: '#3b82f6' },
+    { label: 'Đang hoạt động', value: vouchers.filter((voucher) => voucher.status === 'active').length, color: '#10b981' },
+    { label: 'Tạm dừng', value: vouchers.filter((voucher) => voucher.status === 'inactive').length, color: '#6b7280' },
+    { label: 'Hết hạn', value: vouchers.filter((voucher) => voucher.status === 'expired').length, color: '#ef4444' },
+  ]
+
+  const openCreate = () => {
+    setEditingId(null)
+    setForm(emptyForm)
+    setShowForm(true)
   }
 
-  const handleOpenEdit = (voucher: Voucher) => {
-    setSelectedVoucherId(voucher.id)
-    setEditVoucher({
+  const openEdit = (voucher: ApiVoucher) => {
+    setEditingId(voucher.id)
+    setSelectedId(voucher.id)
+    setForm({
       code: voucher.code,
       name: voucher.name,
-      type: voucher.type,
-      value: voucher.value.toString(),
-      minOrder: voucher.minOrder.toString(),
-      maxDiscount: voucher.maxDiscount.toString(),
-      quantity: voucher.quantity.toString(),
-      startDate: voucher.startDate,
-      endDate: voucher.endDate
+      type: voucher.type === 'fixed' ? 'fixed' : 'percentage',
+      value: String(voucher.value),
+      minOrder: String(voucher.minOrder),
+      maxDiscount: String(voucher.maxDiscount),
+      quantity: String(voucher.quantity),
+      startDate: voucher.startDate.slice(0, 10),
+      endDate: voucher.endDate.slice(0, 10),
+      status: voucher.status === 'inactive' || voucher.status === 'expired' ? voucher.status : 'active',
     })
-    setShowEditModal(true)
+    setShowForm(true)
   }
 
-  const handleUpdateVoucher = () => {
-    if (!editVoucher.code || !editVoucher.name || !editVoucher.value || !editVoucher.minOrder || !editVoucher.maxDiscount || !editVoucher.quantity || !editVoucher.startDate || !editVoucher.endDate) {
+  const submit = async () => {
+    if (!form.code || !form.name || !form.value || !form.quantity || !form.startDate || !form.endDate) {
       alert('Vui lòng điền đầy đủ thông tin!')
       return
     }
 
-    if (selectedVoucherId) {
-      setVouchers(vouchers.map(v => 
-        v.id === selectedVoucherId ? {
-          ...v,
-          code: editVoucher.code.toUpperCase(),
-          name: editVoucher.name,
-          type: editVoucher.type,
-          value: Number(editVoucher.value),
-          minOrder: Number(editVoucher.minOrder),
-          maxDiscount: Number(editVoucher.maxDiscount),
-          quantity: Number(editVoucher.quantity),
-          startDate: editVoucher.startDate,
-          endDate: editVoucher.endDate
-        } : v
-      ))
+    try {
+      const payload = {
+        code: form.code,
+        name: form.name,
+        type: form.type,
+        value: Number(form.value),
+        minOrder: Number(form.minOrder || 0),
+        maxDiscount: Number(form.maxDiscount || 0),
+        quantity: Number(form.quantity),
+        startDate: form.startDate,
+        endDate: form.endDate,
+        status: form.status,
+      }
 
-      setShowEditModal(false)
-      setSelectedVoucherId(null)
-      alert('Đã cập nhật voucher thành công!')
+      if (editingId) {
+        const updated = await api.updateVoucher(editingId, payload)
+        setVouchers((currentVouchers) => currentVouchers.map((voucher) => (voucher.id === editingId ? updated : voucher)))
+      } else {
+        const created = await api.createVoucher(payload)
+        setVouchers((currentVouchers) => [created, ...currentVouchers])
+      }
+
+      setShowForm(false)
+      setEditingId(null)
+      setForm(emptyForm)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Không thể lưu voucher')
     }
   }
 
-  const handleDelete = (id: number) => {
-    if (confirm('Bạn có chắc muốn xóa voucher này?')) {
-      setVouchers(vouchers.filter(v => v.id !== id))
-      alert('Đã xóa voucher!')
+  const remove = async (id: number) => {
+    if (!confirm('Bạn có chắc muốn xóa voucher này?')) return
+    try {
+      await api.deleteVoucher(id)
+      setVouchers((currentVouchers) => currentVouchers.filter((voucher) => voucher.id !== id))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Không thể xóa voucher')
+    }
+  }
+
+  const toggleStatus = async (voucher: ApiVoucher) => {
+    const nextStatus = voucher.status === 'active' ? 'inactive' : 'active'
+    try {
+      const updated = await api.updateVoucher(voucher.id, { status: nextStatus })
+      setVouchers((currentVouchers) => currentVouchers.map((item) => (item.id === voucher.id ? updated : item)))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Không thể cập nhật trạng thái')
     }
   }
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <Header 
-        title="KHUYẾN MÃI & CHÍNH SÁCH"
+      <Header
+        title="KHUYẾN MÃI & VOUCHER"
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Tìm kiếm voucher..."
       />
 
       <div style={{ padding: '40px' }}>
-        <div style={{ background: '#1a1f2e', padding: '32px', borderRadius: '12px', border: '1px solid #2a2f3e', marginBottom: '30px' }}>
-          <h2 style={{ margin: '0 0 24px 0', fontSize: '18px', fontWeight: 600 }}>Voucher Nền Tảng</h2>
-          <div style={{ 
-            padding: '60px', 
-            textAlign: 'center', 
-            border: '2px dashed #2a2f3e', 
-            borderRadius: '12px',
-            background: '#0f1419'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎟️</div>
-            <div style={{ fontSize: '16px', color: '#8b92a7', marginBottom: '24px' }}>Chưa có voucher nào</div>
-            <button 
-              onClick={() => setShowAddModal(true)}
-              style={{ 
-                padding: '12px 32px', 
-                background: '#f97316', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                cursor: 'pointer',
-                fontSize: '15px',
-                fontWeight: 600,
-                boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)'
-              }}
-            >
-              Tạo Voucher
-            </button>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '18px', marginBottom: '24px' }}>
+          {stats.map((stat) => (
+            <div key={stat.label} style={statCardStyle}>
+              <div style={{ color: stat.color, fontSize: '13px', fontWeight: 700 }}>{stat.label}</div>
+              <div style={{ fontSize: '30px', fontWeight: 800, marginTop: '8px' }}>{stat.value}</div>
+            </div>
+          ))}
         </div>
 
-        <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
-          <div style={{ 
-            padding: '20px 24px', 
-            borderBottom: '1px solid #2a2f3e',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div style={{ fontSize: '16px', color: 'white', fontWeight: 500 }}>Danh sách Voucher</div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive' | 'expired')}
-                style={{
-                  padding: '8px 12px',
-                  background: '#0f1419',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  color: 'white',
-                  fontSize: '13px',
-                  cursor: 'pointer'
-                }}>
+        <div style={panelStyle}>
+          <div style={toolbarStyle}>
+            <div style={{ color: '#8b92a7' }}>{loading ? 'Đang tải...' : error || `Hiển thị ${filtered.length} voucher`}</div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
                 <option value="all">Tất cả trạng thái</option>
-                <option value="active">Đang hoạt động</option>
+                <option value="active">Hoạt động</option>
                 <option value="inactive">Tạm dừng</option>
                 <option value="expired">Hết hạn</option>
               </select>
-              <button 
-                onClick={() => setShowAddModal(true)}
-                style={{ 
-                  padding: '8px 18px', 
-                  background: '#f97316', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '6px', 
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 600
-                }}
-              >
-                + Tạo Voucher Mới
-              </button>
+              <button onClick={openCreate} style={primaryButtonStyle}>+ Tạo Voucher</button>
             </div>
           </div>
-          
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #2a2f3e', fontSize: '12px', color: '#6b7280' }}>
-            Hiện thị {startIndex + 1}-{Math.min(endIndex, filteredVouchers.length)} trong {filteredVouchers.length} kết quả
-          </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={tableStyle}>
             <thead>
-              <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
-                <th style={{ padding: '20px 28px', textAlign: 'left', width: '50px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedAll}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    style={{ cursor: 'pointer', width: '20px', height: '20px' }}
-                  />
-                </th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>MÃ VOUCHER</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>TÊN CHƯƠNG TRÌNH</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>GIẢM GIÁ</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>SỐ LƯỢNG</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>THỜI GIAN</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>TRẠNG THÁI</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>THAO TÁC</th>
+              <tr style={headRowStyle}>
+                <th style={thStyle}>Mã</th>
+                <th style={thStyle}>Tên</th>
+                <th style={thStyle}>Giảm giá</th>
+                <th style={thStyle}>Số lượng</th>
+                <th style={thStyle}>Thời gian</th>
+                <th style={thStyle}>Trạng thái</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {currentVouchers.map((voucher) => (
-                <tr key={voucher.id} style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#0f1419'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '24px 28px' }}>
-                    <input type="checkbox" checked={selectedItems.includes(voucher.id)} onChange={() => handleSelectItem(voucher.id)} style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
-                  </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ 
-                      padding: '8px 16px', 
-                      background: '#f9731620', 
-                      border: '2px dashed #f97316',
-                      borderRadius: '8px',
-                      display: 'inline-block'
-                    }}>
-                      <div style={{ color: '#f97316', fontSize: '16px', fontWeight: 700, fontFamily: 'monospace' }}>{voucher.code}</div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ color: 'white', fontSize: '16px', fontWeight: 500, marginBottom: '4px' }}>{voucher.name}</div>
-                    <div style={{ color: '#6b7280', fontSize: '13px' }}>Đơn tối thiểu: {voucher.minOrder.toLocaleString('vi-VN')}₫</div>
-                  </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ color: 'white', fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
-                      {voucher.type === 'percentage' ? `${voucher.value}%` : `${voucher.value.toLocaleString('vi-VN')}₫`}
-                    </div>
-                    <div style={{ color: '#6b7280', fontSize: '13px' }}>
-                      {getTypeText(voucher.type)} • Tối đa {voucher.maxDiscount.toLocaleString('vi-VN')}₫
-                    </div>
-                  </td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                    <div style={{ color: 'white', fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
-                      {voucher.used}/{voucher.quantity}
-                    </div>
-                    <div style={{ 
-                      width: '100%', 
-                      height: '6px', 
-                      background: '#2a2f3e', 
-                      borderRadius: '3px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{ 
-                        width: `${(voucher.used / voucher.quantity) * 100}%`, 
-                        height: '100%', 
-                        background: voucher.used === voucher.quantity ? '#ef4444' : '#10b981',
-                        transition: 'width 0.3s'
-                      }}></div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ color: '#8b92a7', fontSize: '14px', marginBottom: '4px' }}>Từ: {voucher.startDate}</div>
-                    <div style={{ color: '#6b7280', fontSize: '13px' }}>Đến: {voucher.endDate}</div>
-                  </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <span style={{ 
-                        padding: '6px 12px', 
-                        borderRadius: '6px', 
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        background: `${getStatusColor(voucher.status)}20`,
-                        color: getStatusColor(voucher.status)
-                      }}>
-                        {getStatusText(voucher.status)}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <button 
-                        onClick={() => handleOpenEdit(voucher)}
-                        style={{ 
-                          padding: '8px 16px', 
-                          background: '#3b82f6', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '6px', 
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: 500
-                        }}
-                      >
-                        Sửa
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(voucher.id)}
-                        style={{ 
-                          padding: '8px 16px', 
-                          background: '#ef4444', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '6px', 
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: 500
-                        }}
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </td>
+              {!loading && current.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={emptyCellStyle}>Không có voucher nào</td>
                 </tr>
-              ))}
+              ) : (
+                current.map((voucher) => (
+                  <tr key={voucher.id} style={rowStyle}>
+                    <td style={tdStyle}><strong style={{ color: '#f97316' }}>{voucher.code}</strong></td>
+                    <td style={tdStyle}>
+                      <div style={{ fontWeight: 700 }}>{voucher.name}</div>
+                      <div style={mutedTextStyle}>Đơn tối thiểu: {voucher.minOrder.toLocaleString('vi-VN')}đ</div>
+                    </td>
+                    <td style={tdStyle}>
+                      {voucher.type === 'fixed' ? `${voucher.value.toLocaleString('vi-VN')}đ` : `${voucher.value}%`}
+                      <div style={mutedTextStyle}>Tối đa {voucher.maxDiscount.toLocaleString('vi-VN')}đ</div>
+                    </td>
+                    <td style={tdStyle}>{voucher.used}/{voucher.quantity}</td>
+                    <td style={tdStyle}>
+                      <div>{formatDate(voucher.startDate)}</div>
+                      <div style={mutedTextStyle}>{formatDate(voucher.endDate)}</div>
+                    </td>
+                    <td style={tdStyle}>
+                      <span style={badgeStyle(voucher.status)}>{voucher.status}</span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'right' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+                        <button onClick={() => openEdit(voucher)} style={actionButtonStyle('#3b82f6')}>Sửa</button>
+                        <button onClick={() => toggleStatus(voucher)} style={actionButtonStyle('#10b981')}>
+                          {voucher.status === 'active' ? 'Tắt' : 'Bật'}
+                        </button>
+                        <button onClick={() => remove(voucher.id)} style={actionButtonStyle('#ef4444')}>Xóa</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
 
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div style={{ 
-              padding: '20px 24px', 
-              borderTop: '1px solid #2a2f3e',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === 1 ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === 1 ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                ← Trước
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  style={{
-                    padding: '8px 14px',
-                    background: currentPage === page ? '#f97316' : '#2a2f3e',
-                    color: 'white',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: currentPage === page ? 600 : 500,
-                    minWidth: '40px'
-                  }}
-                >
+            <div style={paginationStyle}>
+              <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} style={pageButtonStyle(currentPage === 1)}>←</button>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <button key={page} onClick={() => setCurrentPage(page)} style={{ ...pageButtonStyle(false), background: currentPage === page ? '#f97316' : '#2a2f3e' }}>
                   {page}
                 </button>
               ))}
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === totalPages ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === totalPages ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                Sau →
-              </button>
+              <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={pageButtonStyle(currentPage === totalPages)}>→</button>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Modal Tạo Voucher */}
-        {showAddModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowAddModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '600px',
-              width: '90%',
-              maxHeight: '80vh',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Tạo Voucher Mới</h2>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Mã voucher</label>
-                <input 
-                  type="text" 
-                  placeholder="VD: SUMMER2024"
-                  value={newVoucher.code}
-                  onChange={(e) => setNewVoucher({...newVoucher, code: e.target.value.toUpperCase()})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    textTransform: 'uppercase'
-                  }} 
-                />
-              </div>
+      {showForm && (
+        <Modal title={editingId ? 'Chỉnh sửa voucher' : 'Tạo voucher mới'} onClose={() => setShowForm(false)} onSubmit={submit}>
+          <FormFields form={form} setForm={setForm} />
+        </Modal>
+      )}
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Tên chương trình</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập tên chương trình"
-                  value={newVoucher.name}
-                  onChange={(e) => setNewVoucher({...newVoucher, name: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Loại giảm giá</label>
-                <select 
-                  value={newVoucher.type}
-                  onChange={(e) => setNewVoucher({...newVoucher, type: e.target.value as 'percentage' | 'fixed'})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    cursor: 'pointer'
-                  }}>
-                  <option value="percentage">Phần trăm (%)</option>
-                  <option value="fixed">Cố định (₫)</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>
-                    Giá trị {newVoucher.type === 'percentage' ? '(%)' : '(₫)'}
-                  </label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={newVoucher.value}
-                    onChange={(e) => setNewVoucher({...newVoucher, value: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Giảm tối đa (₫)</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={newVoucher.maxDiscount}
-                    onChange={(e) => setNewVoucher({...newVoucher, maxDiscount: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Đơn tối thiểu (₫)</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={newVoucher.minOrder}
-                    onChange={(e) => setNewVoucher({...newVoucher, minOrder: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Số lượng</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={newVoucher.quantity}
-                    onChange={(e) => setNewVoucher({...newVoucher, quantity: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Ngày bắt đầu</label>
-                  <input 
-                    type="date" 
-                    value={newVoucher.startDate}
-                    onChange={(e) => setNewVoucher({...newVoucher, startDate: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Ngày kết thúc</label>
-                  <input 
-                    type="date" 
-                    value={newVoucher.endDate}
-                    onChange={(e) => setNewVoucher({...newVoucher, endDate: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setNewVoucher({ code: '', name: '', type: 'percentage', value: '', minOrder: '', maxDiscount: '', quantity: '', startDate: '', endDate: '' })
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleAddVoucher}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#f97316',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Tạo Voucher
-                </button>
-              </div>
-            </div>
+      {selectedVoucher && !showForm && (
+        <Modal title="Chi tiết voucher" onClose={() => setSelectedId(null)} hideSubmit>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            <div><strong>Mã:</strong> {selectedVoucher.code}</div>
+            <div><strong>Tên:</strong> {selectedVoucher.name}</div>
+            <div><strong>Loại:</strong> {selectedVoucher.type}</div>
+            <div><strong>Giá trị:</strong> {selectedVoucher.type === 'fixed' ? `${selectedVoucher.value.toLocaleString('vi-VN')}đ` : `${selectedVoucher.value}%`}</div>
+            <div><strong>Giảm tối đa:</strong> {selectedVoucher.maxDiscount.toLocaleString('vi-VN')}đ</div>
+            <div><strong>Đơn tối thiểu:</strong> {selectedVoucher.minOrder.toLocaleString('vi-VN')}đ</div>
+            <div><strong>Số lượng:</strong> {selectedVoucher.used}/{selectedVoucher.quantity}</div>
+            <div><strong>Thời gian:</strong> {formatDate(selectedVoucher.startDate)} - {formatDate(selectedVoucher.endDate)}</div>
+            <div><strong>Trạng thái:</strong> {selectedVoucher.status}</div>
           </div>
-        )}
+        </Modal>
+      )}
+    </div>
+  )
+}
 
-        {/* Modal Sửa Voucher */}
-        {showEditModal && selectedVoucher && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowEditModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '600px',
-              width: '90%',
-              maxHeight: '80vh',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Chỉnh Sửa Voucher</h2>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Mã voucher</label>
-                <input 
-                  type="text" 
-                  value={editVoucher.code}
-                  onChange={(e) => setEditVoucher({...editVoucher, code: e.target.value.toUpperCase()})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    textTransform: 'uppercase'
-                  }} 
-                />
-              </div>
+function FormFields({ form, setForm }: { form: VoucherForm; setForm: Dispatch<SetStateAction<VoucherForm>> }) {
+  return (
+    <div style={{ display: 'grid', gap: '14px' }}>
+      <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="Mã voucher" style={inputStyle} />
+      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên chương trình" style={inputStyle} />
+      <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as VoucherForm['type'] })} style={inputStyle}>
+        <option value="percentage">Phần trăm</option>
+        <option value="fixed">Cố định</option>
+      </select>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <input value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="Giá trị" type="number" style={inputStyle} />
+        <input value={form.maxDiscount} onChange={(e) => setForm({ ...form, maxDiscount: e.target.value })} placeholder="Giảm tối đa" type="number" style={inputStyle} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <input value={form.minOrder} onChange={(e) => setForm({ ...form, minOrder: e.target.value })} placeholder="Đơn tối thiểu" type="number" style={inputStyle} />
+        <input value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Số lượng" type="number" style={inputStyle} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <input value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} type="date" style={inputStyle} />
+        <input value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} type="date" style={inputStyle} />
+      </div>
+      <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as VoucherForm['status'] })} style={inputStyle}>
+        <option value="active">active</option>
+        <option value="inactive">inactive</option>
+        <option value="expired">expired</option>
+      </select>
+    </div>
+  )
+}
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Tên chương trình</label>
-                <input 
-                  type="text" 
-                  value={editVoucher.name}
-                  onChange={(e) => setEditVoucher({...editVoucher, name: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Loại giảm giá</label>
-                <select 
-                  value={editVoucher.type}
-                  onChange={(e) => setEditVoucher({...editVoucher, type: e.target.value as 'percentage' | 'fixed'})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    cursor: 'pointer'
-                  }}>
-                  <option value="percentage">Phần trăm (%)</option>
-                  <option value="fixed">Cố định (₫)</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>
-                    Giá trị {editVoucher.type === 'percentage' ? '(%)' : '(₫)'}
-                  </label>
-                  <input 
-                    type="number" 
-                    value={editVoucher.value}
-                    onChange={(e) => setEditVoucher({...editVoucher, value: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Giảm tối đa (₫)</label>
-                  <input 
-                    type="number" 
-                    value={editVoucher.maxDiscount}
-                    onChange={(e) => setEditVoucher({...editVoucher, maxDiscount: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Đơn tối thiểu (₫)</label>
-                  <input 
-                    type="number" 
-                    value={editVoucher.minOrder}
-                    onChange={(e) => setEditVoucher({...editVoucher, minOrder: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Số lượng</label>
-                  <input 
-                    type="number" 
-                    value={editVoucher.quantity}
-                    onChange={(e) => setEditVoucher({...editVoucher, quantity: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Ngày bắt đầu</label>
-                  <input 
-                    type="date" 
-                    value={editVoucher.startDate}
-                    onChange={(e) => setEditVoucher({...editVoucher, startDate: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Ngày kết thúc</label>
-                  <input 
-                    type="date" 
-                    value={editVoucher.endDate}
-                    onChange={(e) => setEditVoucher({...editVoucher, endDate: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => setShowEditModal(false)}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleUpdateVoucher}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#f97316',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500
-                  }}
-                >
-                  Cập Nhật
-                </button>
-              </div>
-            </div>
+function Modal({ title, onClose, onSubmit, hideSubmit = false, children }: { title: string; onClose: () => void; onSubmit?: () => void; hideSubmit?: boolean; children: ReactNode }) {
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+        <div style={modalHeaderStyle}>
+          <h2 style={{ margin: 0 }}>{title}</h2>
+          <button onClick={onClose} style={closeButtonStyle}>×</button>
+        </div>
+        {children}
+        {!hideSubmit && onSubmit && (
+          <div style={modalActionsStyle}>
+            <button onClick={onClose} style={secondaryButtonStyle}>Hủy</button>
+            <button onClick={onSubmit} style={primaryButtonStyle}>Lưu</button>
           </div>
         )}
       </div>
     </div>
   )
+}
+
+const panelStyle: CSSProperties = { background: '#1a1f2e', borderRadius: '12px', border: '1px solid #2a2f3e', overflow: 'hidden' }
+const statCardStyle: CSSProperties = { background: '#1a1f2e', padding: '24px', borderRadius: '12px', border: '1px solid #2a2f3e' }
+const toolbarStyle: CSSProperties = { padding: '20px 24px', borderBottom: '1px solid #2a2f3e', display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }
+const tableStyle: CSSProperties = { width: '100%', borderCollapse: 'collapse' }
+const headRowStyle: CSSProperties = { background: '#0f1419', borderBottom: '1px solid #2a2f3e' }
+const thStyle: CSSProperties = { padding: '16px 18px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }
+const tdStyle: CSSProperties = { padding: '16px 18px', color: '#cbd5e1', verticalAlign: 'middle' }
+const rowStyle: CSSProperties = { borderBottom: '1px solid #2a2f3e' }
+const emptyCellStyle: CSSProperties = { padding: '40px 28px', textAlign: 'center', color: '#8b92a7' }
+const mutedTextStyle: CSSProperties = { color: '#6b7280', fontSize: '13px', marginTop: '4px' }
+const selectStyle: CSSProperties = { padding: '8px 12px', background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '6px', color: 'white', fontSize: '13px', cursor: 'pointer' }
+const inputStyle: CSSProperties = { width: '100%', padding: '12px', background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '8px', color: 'white', fontSize: '15px' }
+const primaryButtonStyle: CSSProperties = { padding: '10px 16px', borderRadius: '10px', border: 'none', background: '#f97316', color: 'white', cursor: 'pointer', fontWeight: 700 }
+const secondaryButtonStyle: CSSProperties = { padding: '10px 16px', borderRadius: '10px', border: '1px solid #2a2f3e', background: '#0f1419', color: 'white', cursor: 'pointer', fontWeight: 700 }
+const actionButtonStyle = (color: string): CSSProperties => ({ padding: '8px 12px', borderRadius: '8px', border: 'none', background: color, color: 'white', cursor: 'pointer', fontWeight: 700 })
+const paginationStyle: CSSProperties = { padding: '20px 24px', borderTop: '1px solid #2a2f3e', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }
+const pageButtonStyle = (disabled: boolean): CSSProperties => ({ padding: '8px 12px', background: disabled ? '#1a1f2e' : '#2a2f3e', color: disabled ? '#6b7280' : 'white', border: '1px solid #2a2f3e', borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '14px' })
+const overlayStyle: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }
+const modalStyle: CSSProperties = { background: '#1a1f2e', borderRadius: '16px', width: 'min(100%, 640px)', border: '1px solid #2a2f3e', padding: '24px' }
+const modalHeaderStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '18px' }
+const modalActionsStyle: CSSProperties = { display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }
+const closeButtonStyle: CSSProperties = { width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #2a2f3e', background: '#0f1419', color: 'white', cursor: 'pointer', fontSize: '20px' }
+
+function badgeStyle(status: string): CSSProperties {
+  const color = status === 'active' ? '#10b981' : status === 'expired' ? '#ef4444' : '#6b7280'
+  return { padding: '6px 12px', borderRadius: '999px', background: `${color}20`, color, fontWeight: 700, fontSize: '13px' }
+}
+
+function formatDate(value: string) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN')
 }
 
 export default Promo
