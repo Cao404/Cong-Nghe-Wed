@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { api, type ApiOrderHistoryEntry } from '../api'
 import { useStore } from '../store/useStore'
 import Header from './Header'
+import '../styles/don-hang.css'
+import '../styles/don-hang.css'
 
 function Orders() {
   const orders = useStore((state) => state.pendingOrders)
@@ -118,7 +120,7 @@ function Orders() {
   }, [selectedOrderId])
 
   return (
-    <div style={{ color: 'white', minHeight: '100vh' }}>
+    <div className="orders-page" style={{ color: 'white', minHeight: '100vh' }}>
       <Header
         title="QUẢN LÝ ĐƠN HÀNG"
         searchValue={searchTerm}
@@ -126,12 +128,13 @@ function Orders() {
         searchPlaceholder="Tìm kiếm đơn hàng..."
       />
 
-      <div style={{ padding: '40px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+      <div className="orders-page__content" style={{ padding: '40px' }}>
+        <div className="orders-page__tabs" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              className={`orders-page__tab ${activeTab === tab.id ? 'orders-page__tab--active' : ''}`}
               style={{
                 padding: '10px 16px',
                 borderRadius: '999px',
@@ -147,9 +150,9 @@ function Orders() {
           ))}
         </div>
 
-        <div style={{ background: '#1a1f2e', border: '1px solid #2a2f3e', borderRadius: '12px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
+        <div className="orders-page__card" style={{ background: '#1a1f2e', border: '1px solid #2a2f3e', borderRadius: '12px', overflow: 'hidden' }}>
+          <table className="orders-page__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead className="orders-page__table-head">
               <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
                 <th style={thStyle}>Mã đơn</th>
                 <th style={thStyle}>Khách hàng</th>
@@ -162,7 +165,7 @@ function Orders() {
             </thead>
             <tbody>
               {filteredOrders.map((order) => (
-                <tr key={order.id} style={{ borderBottom: '1px solid #2a2f3e' }}>
+                <tr key={order.id} className="orders-page__table-row" style={{ borderBottom: '1px solid #2a2f3e' }}>
                   <td style={tdStyle}>{order.orderCode}</td>
                   <td style={tdStyle}>
                     <div style={{ color: 'white', fontWeight: 700 }}>{order.customerName}</div>
@@ -174,8 +177,8 @@ function Orders() {
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     <span style={statusBadge(order.status)}>{statusText(order.status)}</span>
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <td className="orders-page__table-center" style={{ ...tdStyle, textAlign: 'center' }}>
+                    <div className="orders-page__actions" style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                       <button onClick={() => setSelectedOrderId(order.id)} style={actionButton('#3b82f6')}>Chi tiết</button>
                       {order.status === 'pending' && (
                         <>
@@ -204,6 +207,7 @@ function Orders() {
 
       {selectedOrder && (
         <div
+          className="orders-page__detail-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -217,6 +221,7 @@ function Orders() {
           onClick={() => setSelectedOrderId(null)}
         >
           <div
+            className="orders-page__detail-card"
             style={{
               width: 'min(100%, 920px)',
               maxHeight: '90vh',
@@ -229,15 +234,16 @@ function Orders() {
             }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div style={{ padding: '24px', borderBottom: '1px solid #2a2f3e', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+            <div className="orders-page__detail-header" style={{ padding: '24px', borderBottom: '1px solid #2a2f3e', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '22px', color: 'white' }}>Chi tiết đơn hàng</h2>
-                <div style={{ marginTop: '8px', color: '#8b92a7' }}>
+                <div className="orders-page__detail-subtitle" style={{ marginTop: '8px', color: '#8b92a7' }}>
                   {selectedOrder.orderCode} · {statusText(selectedOrder.status)}
                 </div>
               </div>
               <button
                 onClick={() => setSelectedOrderId(null)}
+                className="orders-page__detail-close"
                 style={{
                   width: '38px',
                   height: '38px',
@@ -253,23 +259,23 @@ function Orders() {
               </button>
             </div>
 
-            <div style={{ padding: '24px', overflowY: 'auto', display: 'grid', gap: '18px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+            <div className="orders-page__detail-body" style={{ padding: '24px', overflowY: 'auto', display: 'grid', gap: '18px' }}>
+              <div className="orders-page__detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
                 <InfoCard label="Khách hàng" value={selectedOrder.customerName} subValue={selectedOrder.customerEmail} />
                 <InfoCard label="Tổng tiền" value={money(selectedOrder.total)} subValue={new Date(selectedOrder.timestamp).toLocaleString('vi-VN')} />
                 <InfoCard label="Trạng thái" value={statusText(selectedOrder.status)} subValue={selectedOrder.orderCode} />
               </div>
 
-              <section style={panelStyle}>
-                <div style={sectionTitleStyle}>Lịch sử xử lý</div>
+              <section className="orders-page__section" style={panelStyle}>
+                <div className="orders-page__section-title" style={sectionTitleStyle}>Lịch sử xử lý</div>
                 {historyLoading ? (
-                  <div style={emptyStateStyle}>Đang tải lịch sử...</div>
+                  <div className="orders-page__empty" style={emptyStateStyle}>Đang tải lịch sử...</div>
                 ) : history.length === 0 ? (
-                  <div style={emptyStateStyle}>Chưa có lịch sử xử lý.</div>
+                  <div className="orders-page__empty" style={emptyStateStyle}>Chưa có lịch sử xử lý.</div>
                 ) : (
                   <div style={{ display: 'grid', gap: '10px' }}>
                     {history.map((entry) => (
-                      <div key={entry.id} style={historyItemStyle}>
+                      <div key={entry.id} className="orders-page__history-item" style={historyItemStyle}>
                         <div>
                           <div style={{ color: 'white', fontWeight: 700, marginBottom: '4px' }}>{entry.actorName}</div>
                           <div style={{ color: '#8b92a7', fontSize: '13px' }}>{entry.note || historyActionLabel(entry.action)}</div>
@@ -284,11 +290,11 @@ function Orders() {
                 )}
               </section>
 
-              <section style={panelStyle}>
-                <div style={sectionTitleStyle}>Sản phẩm</div>
+              <section className="orders-page__section" style={panelStyle}>
+                <div className="orders-page__section-title" style={sectionTitleStyle}>S???n ph???m</div>
                 <div style={{ display: 'grid', gap: '10px' }}>
                   {selectedOrder.items.map((item, index) => (
-                    <div key={index} style={lineItemStyle}>
+                    <div key={index} className="orders-page__line-item" style={lineItemStyle}>
                       <div>
                         <div style={{ color: 'white', fontWeight: 700 }}>{item.productName}</div>
                         <div style={{ color: '#8b92a7', fontSize: '13px' }}>Số lượng: {item.quantity}</div>
@@ -300,20 +306,20 @@ function Orders() {
               </section>
 
               {selectedOrder.status === 'pending' && (
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <div className="orders-page__detail-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <button onClick={() => handleReject(selectedOrder.id)} style={actionButton('#ef4444')}>Từ chối</button>
                   <button onClick={() => handleApprove(selectedOrder.id)} style={actionButton('#10b981')}>Duyệt đơn</button>
                 </div>
               )}
               {selectedOrder.status === 'approved' && (
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <div className="orders-page__detail-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <button onClick={() => void handleAdvance(selectedOrder.id, 'shipping')} style={actionButton('#3b82f6')}>
                     Chuyển sang đang giao
                   </button>
                 </div>
               )}
               {selectedOrder.status === 'shipping' && (
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <div className="orders-page__detail-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <button onClick={() => void handleAdvance(selectedOrder.id, 'delivered')} style={actionButton('#14b8a6')}>
                     Xác nhận đã giao
                   </button>

@@ -1,0 +1,303 @@
+﻿.orders-page {
+  color: white;
+  min-height: 100vh;
+}
+.orders-page__content {
+  padding: 40px;
+}
+.orders-page__tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.orders-page__tab {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #2a3140;
+  background: #151a22;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+.orders-page__tab--active {
+  border-color: #8c85ef;
+  background: #7a73ea;
+}
+.orders-page__card {
+  background: #1a1f2e;
+  border: 1px solid #2a2f3e;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.orders-page__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.orders-page__table-head {
+  background: #0f1419;
+  border-bottom: 1px solid #2a2f3e;
+}
+.orders-page__table-row {
+  border-bottom: 1px solid #2a2f3e;
+}
+.orders-page__table th,
+.orders-page__table td {
+  padding: 16px 18px;
+}
+.orders-page__table-head th {
+  text-align: left;
+  color: #8b92a7;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.orders-page__table-center {
+  text-align: center;
+}
+.orders-page__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.orders-page__detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 2000;
+}
+.orders-page__detail-card {
+  width: min(100%, 920px);
+  max-height: 90vh;
+  overflow: hidden;
+  background: #1a1f2e;
+  border: 1px solid #2a2f3e;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.orders-page__detail-header {
+  padding: 24px;
+  border-bottom: 1px solid #2a2f3e;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.orders-page__detail-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: grid;
+  gap: 18px;
+}
+.orders-page__detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.orders-page__section {
+  background: #151a22;
+  border: 1px solid #2a2f3e;
+  border-radius: 14px;
+  padding: 18px;
+}
+.orders-page__section-title {
+  color: white;
+  font-weight: 700;
+  margin-bottom: 14px;
+  font-size: 16px;
+}
+.orders-page__empty {
+  color: #8b92a7;
+  padding: 18px 0;
+}
+.orders-page__history-item,
+.orders-page__line-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #0f1419;
+  border: 1px solid #2a2f3e;
+}
+.orders-page__detail-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #2a2f3e;
+  background: #0f1419;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+}
+.orders-page__detail-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.orders-page__detail-title {
+  margin: 0;
+  font-size: 22px;
+  color: white;
+}
+.orders-page__detail-subtitle {
+  margin-top: 8px;
+  color: #8b92a7;
+}
+.orders-page__detail-info-label {
+  color: #8b92a7;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.orders-page__detail-info-value {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.orders-page__detail-info-sub {
+  color: #8b92a7;
+  font-size: 13px;
+}
+.orders-page__btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+.orders-page__btn--primary { background: #3b82f6; }
+.orders-page__btn--success { background: #10b981; }
+.orders-page__btn--danger { background: #ef4444; }
+.orders-page__btn--teal { background: #14b8a6; }
+.orders-page__badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.order-approval {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+.order-approval__card {
+  background: #1a1f2e;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #2a2f3e;
+}
+.order-approval__header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #2a2f3e;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.order-approval__title {
+  margin: 0;
+  color: white;
+  font-size: 22px;
+}
+.order-approval__body {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+.order-approval__empty {
+  padding: 60px 20px;
+  color: #8b92a7;
+  text-align: center;
+}
+.order-approval__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.order-approval__table-head {
+  background: #0f1419;
+  border-bottom: 1px solid #2a2f3e;
+}
+.order-approval__table-row {
+  border-bottom: 1px solid #2a2f3e;
+}
+.order-approval__table th,
+.order-approval__table td {
+  padding: 16px 18px;
+}
+.order-approval__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.order-approval__detail {
+  padding: 24px;
+}
+.order-approval__detail-card {
+  background: #151a22;
+  border: 1px solid #2a2f3e;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.order-approval__detail-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid #2a2f3e;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.order-approval__detail-body {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+.order-approval__history {
+  display: grid;
+  gap: 10px;
+}
+.order-approval__line-item,
+.order-approval__history-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #0f1419;
+  border: 1px solid #2a2f3e;
+}
+.order-approval__btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+.order-approval__btn--primary { background: #3b82f6; }
+.order-approval__btn--success { background: #10b981; }
+.order-approval__btn--danger { background: #ef4444; }
+.order-approval__btn--teal { background: #14b8a6; }
