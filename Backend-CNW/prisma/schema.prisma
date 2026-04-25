@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id(map: "PK__User__3213E83F0EAAFCA4") @default(autoincrement())
+  email     String    @unique(map: "UQ__User__AB6E6164A0D8887D") @db.NVarChar(255)
+  name      String    @db.NVarChar(255)
+  password  String    @db.NVarChar(255)
+  role      String?   @default("user", map: "DF__User__role__38996AB5") @db.NVarChar(50)
+  phone     String?   @db.NVarChar(50)
+  createdAt DateTime? @default(now(), map: "DF__User__createdAt__398D8EEE")
+  updatedAt DateTime? @default(now(), map: "DF__User__updatedAt__3A81B327") @updatedAt
+  orders    Order[]
+}
+
+model Product {
+  id          Int       @id(map: "PK__Product__3213E83F5C83134C") @default(autoincrement())
+  name        String    @db.NVarChar(255)
+  price       Float
+  stock       Int
+  category    String    @db.NVarChar(100)
+  image       String    @db.NVarChar(500)
+  sku         String    @unique(map: "UQ__Product__DDDF4BE7E705A944") @db.NVarChar(100)
+  sold        Int?      @default(0, map: "DF__Product__sold__3E52440B")
+  description String?   @db.NVarChar(Max)
+  createdAt   DateTime? @default(now(), map: "DF__Product__created__3F466844")
+  updatedAt   DateTime? @default(now(), map: "DF__Product__updated__403A8C7D") @updatedAt
+}
+
+model Order {
+  id            Int       @id(map: "PK__Order__3213E83F2B16D132") @default(autoincrement())
+  orderCode     String    @unique(map: "UQ__Order__23699D68B66EAA8D") @db.NVarChar(100)
+  userId        Int
+  customerName  String    @db.NVarChar(255)
+  customerEmail String    @db.NVarChar(255)
+  customerPhone String?   @db.NVarChar(50)
+  address       String?   @db.NVarChar(Max)
+  city          String?   @db.NVarChar(100)
+  district      String?   @db.NVarChar(100)
+  items         String    @db.NVarChar(Max)
+  total         Float
+  shippingFee   Float?    @default(30000, map: "DF__Order__shippingF__440B1D61")
+  paymentMethod String?   @default("cod", map: "DF__Order__paymentMe__44FF419A") @db.NVarChar(50)
+  status        String?   @default("pending", map: "DF__Order__status__45F365D3") @db.NVarChar(50)
+  note          String?   @db.NVarChar(Max)
+  createdAt     DateTime? @default(now(), map: "DF__Order__createdAt__46E78A0C")
+  updatedAt     DateTime? @default(now(), map: "DF__Order__updatedAt__47DBAE45") @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onUpdate: NoAction, map: "FK__Order__userId__48CFD27E")
+  auditLogs     OrderAuditLog[]
+}
+
+model OrderAuditLog {
+  id         Int      @id @default(autoincrement())
+  orderId    Int
+  actorId    Int?
+  actorName  String   @db.NVarChar(255)
+  actorRole  String?  @db.NVarChar(50)
+  action     String   @db.NVarChar(50)
+  fromStatus String?  @db.NVarChar(50)
+  toStatus   String?  @db.NVarChar(50)
+  note       String?  @db.NVarChar(500)
+  createdAt  DateTime @default(now())
+
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
+model Category {
+  id             Int       @id(map: "PK__Category__3213E83FF9B3F1EC") @default(autoincrement())
+  name           String    @unique(map: "UQ__Category__72E12F1B662EBA06") @db.NVarChar(255)
+  description    String?   @db.NVarChar(500)
+  productCount   Int?      @default(0, map: "DF__Category__produc__4CA06362")
+  parentCategory String?   @db.NVarChar(255)
+  status         String?   @default("active", map: "DF__Category__status__4D94879B") @db.NVarChar(50)
+  createdAt      DateTime? @default(now(), map: "DF__Category__create__4E88ABD4")
+  updatedAt      DateTime? @default(now(), map: "DF__Category__update__4F7CD00D") @updatedAt
+}
+
+model Voucher {
+  id           Int       @id(map: "PK__Voucher__3213E83F8B1AF1AA") @default(autoincrement())
+  code         String    @unique(map: "UQ__Voucher__CODE") @db.NVarChar(100)
+  name         String    @db.NVarChar(255)
+  type         String    @db.NVarChar(50)
+  value        Float
+  minOrder     Float     @default(0)
+  maxDiscount  Float     @default(0)
+  quantity     Int
+  used         Int       @default(0)
+  startDate    DateTime
+  endDate      DateTime
+  status       String    @default("active") @db.NVarChar(50)
+  createdAt    DateTime? @default(now())
+  updatedAt    DateTime? @default(now()) @updatedAt
+}
+
+model ShippingPartner {
+  id             Int       @id(map: "PK__ShippingPartner__3213E83F") @default(autoincrement())
+  name           String    @db.NVarChar(255)
+  code           String    @unique(map: "UQ__ShippingPartner__CODE") @db.NVarChar(100)
+  logo           String    @db.NVarChar(50)
+  type           String    @db.NVarChar(50)
+  status         String    @default("active") @db.NVarChar(50)
+  totalOrders    Int       @default(0)
+  successRate    Float     @default(0)
+  avgDeliveryTime Float    @default(0)
+  fee            Float     @default(0)
+  contact        String    @db.NVarChar(100)
+  createdAt      DateTime? @default(now())
+  updatedAt      DateTime? @default(now()) @updatedAt
+}
+
+model Dispute {
+  id           Int       @id(map: "PK__Dispute__3213E83F") @default(autoincrement())
+  disputeCode  String    @unique(map: "UQ__Dispute__CODE") @db.NVarChar(100)
+  orderCode    String    @db.NVarChar(100)
+  customer     String    @db.NVarChar(255)
+  shop         String    @db.NVarChar(255)
+  type         String    @db.NVarChar(50)
+  reason       String    @db.NVarChar(Max)
+  amount       Float
+  status       String    @default("pending") @db.NVarChar(50)
+  priority     String    @default("medium") @db.NVarChar(50)
+  createdDate  DateTime  @default(now())
+  updatedAt    DateTime? @default(now()) @updatedAt
+}
