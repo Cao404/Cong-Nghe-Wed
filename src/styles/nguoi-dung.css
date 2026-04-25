@@ -1,0 +1,5 @@
+﻿.nguoi-dung-page { color: white; min-height: 100vh; }
+.nguoi-dung-page__header { padding: 24px 40px; border-bottom: 1px solid #2a2f3e; display: flex; justify-content: space-between; align-items: center; background: #0f1419; }
+.nguoi-dung-page__content { padding: 40px; }
+.nguoi-dung-page__tabs { display: flex; gap: 12px; margin-bottom: 30px; overflow-x: auto; }
+.nguoi-dung-page__panel { background: #1a1f2e; border-radius: 8px; border: 1px solid #2a2f3e; overflow: hidden; }

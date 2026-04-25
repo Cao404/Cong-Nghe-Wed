@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../styles/nguoi-dung.css'
 
 interface Seller {
   id: number
@@ -110,8 +111,8 @@ function Users() {
   }
 
   return (
-    <div style={{ color: 'white', minHeight: '100vh' }}>
-      <div style={{ 
+    <div className="nguoi-dung-page">
+      <div className="nguoi-dung-page__header" style={{ 
         padding: '24px 40px', 
         borderBottom: '1px solid #2a2f3e',
         display: 'flex',
@@ -173,8 +174,8 @@ function Users() {
         </div>
       </div>
 
-      <div style={{ padding: '40px' }}>
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '30px', overflowX: 'auto' }}>
+      <div className="nguoi-dung-page__content">
+        <div className="nguoi-dung-page__tabs">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -197,7 +198,7 @@ function Users() {
           ))}
         </div>
 
-        <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
+        <div className="nguoi-dung-page__panel">
           <div style={{ 
             padding: '20px 24px', 
             borderBottom: '1px solid #2a2f3e',
