@@ -1,153 +1,182 @@
-import { useState } from 'react'
+import { useMemo, useRef, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { api } from '../api'
 import { useStore } from '../store/useStore'
+import { DEFAULT_PRODUCTS } from '../defaultProducts'
 import Header from './Header'
+
+type ProductForm = {
+  name: string
+  sku: string
+  category: string
+  price: string
+  stock: string
+  image: string
+  description: string
+}
+
+const emptyForm: ProductForm = {
+  name: '',
+  sku: '',
+  category: '',
+  price: '',
+  stock: '',
+  image: '',
+  description: '',
+}
 
 function Products() {
   const products = useStore((state) => state.products)
+  const addProduct = useStore((state) => state.addProduct)
+  const updateProduct = useStore((state) => state.updateProduct)
   const deleteProduct = useStore((state) => state.deleteProduct)
+  const visibleProducts = products.length > 0 ? products : DEFAULT_PRODUCTS
 
-  const [selectedAll, setSelectedAll] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<number[]>([])
-  const [priceRange, setPriceRange] = useState({ min: '', max: '' })
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showDetailModal, setShowDetailModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
-  
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    sku: '',
-    category: '',
-    price: '',
-    stock: '',
-    description: ''
-  })
+  const [editTargetId, setEditTargetId] = useState<number | null>(null)
+  const [form, setForm] = useState<ProductForm>(emptyForm)
+  const addImageInputRef = useRef<HTMLInputElement | null>(null)
+  const editImageInputRef = useRef<HTMLInputElement | null>(null)
 
-  const [editProduct, setEditProduct] = useState({
-    name: '',
-    sku: '',
-    category: '',
-    price: '',
-    stock: '',
-    description: ''
-  })
+  const categories = useMemo(() => ['all', ...Array.from(new Set(visibleProducts.map((product) => product.category)))], [visibleProducts])
 
-  const selectedProduct = selectedProductId ? products.find(p => p.id === selectedProductId) : null
-
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = visibleProducts.filter((product) => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesPrice = (!priceRange.min || product.price >= Number(priceRange.min)) && (!priceRange.max || product.price <= Number(priceRange.max))
-    return matchesCategory && matchesSearch && matchesPrice
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesCategory && matchesSearch
   })
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentProducts = filteredProducts.slice(startIndex, endIndex)
+  const selectedProduct = selectedProductId ? visibleProducts.find((product) => product.id === selectedProductId) ?? null : null
 
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedAll(checked)
-    if (checked) {
-      setSelectedItems(filteredProducts.map(p => p.id))
-    } else {
-      setSelectedItems([])
-    }
+  const openAddModal = () => {
+    setForm(emptyForm)
+    setShowAddModal(true)
   }
 
-  const handleSelectItem = (id: number) => {
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter(i => i !== id))
-      setSelectedAll(false)
-    } else {
-      const newSelected = [...selectedItems, id]
-      setSelectedItems(newSelected)
-      if (newSelected.length === filteredProducts.length) {
-        setSelectedAll(true)
+  const openEditModal = (product: (typeof visibleProducts)[number]) => {
+    setEditTargetId(product.id)
+    setForm({
+      name: product.name,
+      sku: product.sku,
+      category: product.category,
+      price: String(product.price),
+      stock: String(product.stock),
+      image: product.image ?? '',
+      description: product.description ?? '',
+    })
+    setShowEditModal(true)
+  }
+
+  const handleImageFile = (file: File | undefined) => {
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      if (result) {
+        setForm((current) => ({ ...current, image: result }))
       }
     }
+    reader.readAsDataURL(file)
   }
 
-  const handleDelete = (id: number) => {
-    if (confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
-      deleteProduct(id)
-    }
-  }
-
-  const handleViewDetail = (id: number) => {
-    setSelectedProductId(id)
-    setShowDetailModal(true)
-  }
-
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.sku || !newProduct.category || !newProduct.price || !newProduct.stock) {
+  const handleCreate = async () => {
+    if (!form.name || !form.sku || !form.category || !form.price || !form.stock) {
       alert('Vui lòng điền đầy đủ thông tin!')
       return
     }
 
-    const addProduct = useStore.getState().addProduct
-    const newId = Math.max(...products.map(p => p.id)) + 1
-    
-    addProduct({
-      id: newId,
-      name: newProduct.name,
-      sku: newProduct.sku,
-      category: newProduct.category,
-      price: Number(newProduct.price),
-      stock: Number(newProduct.stock),
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=150&h=150&fit=crop',
-      sold: 0
-    })
-
-    setNewProduct({ name: '', sku: '', category: '', price: '', stock: '', description: '' })
-    setShowAddModal(false)
-    alert('Đã thêm sản phẩm thành công!')
-  }
-
-  const handleOpenEdit = () => {
-    if (selectedProduct) {
-      setEditProduct({
-        name: selectedProduct.name,
-        sku: selectedProduct.sku,
-        category: selectedProduct.category,
-        price: selectedProduct.price.toString(),
-        stock: selectedProduct.stock.toString(),
-        description: ''
+    try {
+      const created = await api.createProduct({
+        name: form.name,
+        sku: form.sku,
+        category: form.category,
+        price: Number(form.price),
+        stock: Number(form.stock),
+        description: form.description,
+        image: form.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=150&h=150&fit=crop',
       })
-      setShowDetailModal(false)
-      setShowEditModal(true)
+
+      addProduct({
+        id: created.id,
+        name: created.name,
+        sku: created.sku,
+        category: created.category,
+        price: created.price,
+        stock: created.stock,
+        image: created.image,
+        sold: created.sold ?? 0,
+        description: created.description ?? '',
+      })
+
+      setShowAddModal(false)
+      setForm(emptyForm)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Thêm sản phẩm thất bại')
     }
   }
 
-  const handleUpdateProduct = () => {
-    if (!editProduct.name || !editProduct.sku || !editProduct.category || !editProduct.price || !editProduct.stock) {
+  const handleUpdate = async () => {
+    if (!editTargetId) {
+      return
+    }
+
+    if (!form.name || !form.sku || !form.category || !form.price || !form.stock) {
       alert('Vui lòng điền đầy đủ thông tin!')
       return
     }
 
-    if (selectedProductId) {
-      const updateProduct = useStore.getState().updateProduct
-      updateProduct(selectedProductId, {
-        name: editProduct.name,
-        sku: editProduct.sku,
-        category: editProduct.category,
-        price: Number(editProduct.price),
-        stock: Number(editProduct.stock)
+    try {
+      const updated = await api.updateProduct(editTargetId, {
+        name: form.name,
+        sku: form.sku,
+        category: form.category,
+        price: Number(form.price),
+        stock: Number(form.stock),
+        image: form.image || undefined,
+        description: form.description,
+      })
+
+      updateProduct(editTargetId, {
+        name: updated.name,
+        sku: updated.sku,
+        category: updated.category,
+        price: updated.price,
+        stock: updated.stock,
+        image: updated.image,
+        sold: updated.sold ?? 0,
+        description: updated.description ?? '',
       })
 
       setShowEditModal(false)
-      setSelectedProductId(null)
-      alert('Đã cập nhật sản phẩm thành công!')
+      setEditTargetId(null)
+      setForm(emptyForm)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Cập nhật sản phẩm thất bại')
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
+      return
+    }
+
+    try {
+      await api.deleteProduct(id)
+      deleteProduct(id)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Xóa sản phẩm thất bại')
     }
   }
 
   return (
     <div style={{ color: 'white', minHeight: '100vh' }}>
-      <Header 
+      <Header
         title="DANH SÁCH SẢN PHẨM"
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
@@ -155,879 +184,323 @@ function Products() {
       />
 
       <div style={{ padding: '40px' }}>
-
-        <div style={{ background: '#1a1f2e', padding: '28px', borderRadius: '10px', border: '1px solid #2a2f3e', marginBottom: '24px' }}>
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '15px', color: '#e5e7eb', marginBottom: '6px', fontWeight: 500 }}>Tất cả Danh sách sản phẩm</div>
-            <div style={{ fontSize: '13px', color: '#6b7280' }}>Lọc theo</div>
-          </div>
-          
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '12px', fontSize: '12px', color: '#8b92a7', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Tất cả danh mục</label>
-            <select 
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              style={{ 
-                width: '100%', 
-                padding: '12px 16px', 
-                background: '#0f1419', 
-                border: '1px solid #2a2f3e', 
-                borderRadius: '8px',
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '999px',
+                border: selectedCategory === category ? '1px solid #8c85ef' : '1px solid #2a3140',
+                background: selectedCategory === category ? '#7a73ea' : '#151a22',
                 color: 'white',
-                fontSize: '15px',
-                cursor: 'pointer'
-              }}>
-              <option value="all">Tất cả danh mục</option>
-              <option value="Laptop">Laptop</option>
-              <option value="Điện thoại">Điện thoại</option>
-              <option value="Máy tính bảng">Máy tính bảng</option>
-              <option value="Phụ kiện">Phụ kiện</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '12px', fontSize: '12px', color: '#8b92a7', fontWeight: 700, letterSpacing: '0.5px' }}>Giá Sản Phẩm</label>
-            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-              <input 
-                type="text" 
-                placeholder="Tối thiểu"
-                value={priceRange.min}
-                onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
-                style={{ 
-                  flex: 1,
-                  padding: '12px 16px', 
-                  background: '#0f1419', 
-                  border: '1px solid #2a2f3e', 
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontSize: '15px'
-                }}
-              />
-              <span style={{ color: '#8b92a7', fontSize: '15px' }}>-</span>
-              <input 
-                type="text" 
-                placeholder="Tối đa"
-                value={priceRange.max}
-                onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
-                style={{ 
-                  flex: 1,
-                  padding: '12px 16px', 
-                  background: '#0f1419', 
-                  border: '1px solid #2a2f3e', 
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontSize: '15px'
-                }}
-              />
-            </div>
-          </div>
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+            >
+              {category === 'all' ? 'Tất cả' : category}
+            </button>
+          ))}
+          <button
+            onClick={openAddModal}
+            style={{
+              marginLeft: 'auto',
+              padding: '10px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              background: '#f97316',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 700,
+            }}
+          >
+            + Thêm sản phẩm
+          </button>
         </div>
 
-        <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
-          <div style={{ 
-            padding: '20px 24px', 
-            borderBottom: '1px solid #2a2f3e',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{ fontSize: '14px', color: 'white', fontWeight: 500 }}>Tất cả Danh sách sản phẩm</div>
-              {selectedItems.length > 0 && (
-                <>
-                  <div style={{ fontSize: '13px', color: '#8b92a7' }}>({selectedItems.length} đã chọn)</div>
-                  <button 
-                    onClick={() => {
-                      if (confirm(`Bạn có chắc muốn xóa ${selectedItems.length} sản phẩm đã chọn?`)) {
-                        selectedItems.forEach(id => deleteProduct(id))
-                        setSelectedItems([])
-                        setSelectedAll(false)
-                        alert('Đã xóa các sản phẩm!')
-                      }
-                    }}
-                    style={{ 
-                      padding: '6px 14px', 
-                      background: '#ef4444', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '6px', 
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 500
-                    }}
-                  >
-                    Xóa đã chọn
-                  </button>
-                  <button 
-                    onClick={() => {
-                      alert(`Xuất ${selectedItems.length} sản phẩm ra Excel`)
-                      setSelectedItems([])
-                      setSelectedAll(false)
-                    }}
-                    style={{ 
-                      padding: '6px 14px', 
-                      background: '#10b981', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '6px', 
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: 500
-                    }}
-                  >
-                    Xuất Excel
-                  </button>
-                </>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button 
-                onClick={() => setShowAddModal(true)}
-                style={{ 
-                  padding: '8px 18px', 
-                  background: '#f97316', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '6px', 
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#ea580c'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#f97316'}
-              >
-                + Thêm sản phẩm
-              </button>
-              <select 
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  background: '#0f1419',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  color: 'white',
-                  fontSize: '13px',
-                  cursor: 'pointer'
-                }}>
-                <option value="all">Tất cả trạng thái</option>
-                <option value="in_stock">Còn hàng</option>
-                <option value="low_stock">Sắp hết</option>
-                <option value="out_of_stock">Hết hàng</option>
-              </select>
-            </div>
-          </div>
-          
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #2a2f3e', fontSize: '12px', color: '#6b7280' }}>
-            Hiện thị {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} trong {filteredProducts.length} kết quả
+        <div style={{ background: '#1a1f2e', border: '1px solid #2a2f3e', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #2a2f3e', color: '#8b92a7', fontSize: '13px' }}>
+            Hiển thị {filteredProducts.length} sản phẩm
           </div>
 
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
-                <th style={{ padding: '16px 24px', textAlign: 'left', width: '50px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedAll}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-                  />
-                </th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>SẢN PHẨM</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>SKU</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>DANH MỤC</th>
-                <th style={{ padding: '20px 28px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>GIÁ BÁN</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>KHO</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>ĐÃ BÁN</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>TRẠNG THÁI</th>
-                <th style={{ padding: '20px 28px', textAlign: 'center', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>THAO TÁC</th>
+                <th style={thStyle}>Sản phẩm</th>
+                <th style={thStyle}>SKU</th>
+                <th style={thStyle}>Ảnh</th>
+                <th style={thStyle}>Danh mục</th>
+                <th style={thStyle}>Giá</th>
+                <th style={thStyle}>Kho</th>
+                <th style={thStyle}>Đã bán</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Hành động</th>
               </tr>
             </thead>
             <tbody>
-              {currentProducts.map(product => (
-                <tr key={product.id} style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#0f1419'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '24px 28px' }}>
-                    <input type="checkbox" checked={selectedItems.includes(product.id)} onChange={() => handleSelectItem(product.id)} style={{ cursor: 'pointer', width: '20px', height: '20px' }} />
-                  </td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                      <img 
-                        src={product.image} 
-                        alt={product.name}
-                        style={{ 
-                          width: '80px', 
-                          height: '80px', 
-                          background: '#2a2f3e', 
-                          borderRadius: '14px',
-                          objectFit: 'cover',
-                          border: '2px solid #2a2f3e'
-                        }}
-                        onError={(e) => {
-                          const img = e.currentTarget as HTMLImageElement
-                          const fallback = img.nextElementSibling as HTMLElement
-                          img.style.display = 'none'
-                          if (fallback) fallback.style.display = 'flex'
-                        }}
-                      />
-                      <div style={{ 
-                        width: '80px', 
-                        height: '80px', 
-                        background: '#2a2f3e', 
-                        borderRadius: '14px',
-                        display: 'none',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '36px',
-                        border: '2px solid #2a2f3e'
-                      }}>📦</div>
-                      <span style={{ color: 'white', fontSize: '16px', fontWeight: 500 }}>{product.name}</span>
+              {filteredProducts.map((product) => (
+                <tr key={product.id} style={{ borderBottom: '1px solid #2a2f3e' }}>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <img src={product.image} alt={product.name} style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover' }} />
+                      <div>
+                        <div style={{ fontWeight: 700, color: 'white' }}>{product.name}</div>
+                        <div style={{ color: '#8b92a7', fontSize: '13px' }}>{product.description || 'Không có mô tả'}</div>
+                      </div>
                     </div>
                   </td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{product.sku}</td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{product.category}</td>
-                  <td style={{ padding: '24px 28px', color: 'white', fontSize: '16px', fontWeight: 600 }}>{product.price.toLocaleString('vi-VN')} ₫</td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px', textAlign: 'center' }}>{product.stock}</td>
-                  <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px', textAlign: 'center' }}>{product.sold}</td>
-                  <td style={{ padding: '24px 28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <span style={{ 
-                        padding: '6px 14px', 
-                        borderRadius: '6px', 
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        background: product.stock > 10 ? '#10b98120' : product.stock > 5 ? '#f9731620' : '#ef444420',
-                        color: product.stock > 10 ? '#10b981' : product.stock > 5 ? '#f97316' : '#ef4444'
-                      }}>
-                        {product.stock > 10 ? 'Còn hàng' : product.stock > 5 ? 'Sắp hết' : 'Hết hàng'}
-                      </span>
-                    </div>
+                  <td style={tdStyle}>{product.sku}</td>
+                  <td style={tdStyle}>
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid #2a2f3e' }}
+                    />
                   </td>
-                  <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <button 
-                        onClick={() => handleViewDetail(product.id)}
-                        style={{ 
-                          padding: '10px 20px', 
-                          background: '#3b82f6', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '7px', 
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#3b82f6'}
-                      >
-                        Chi tiết
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(product.id)}
-                        style={{ 
-                          padding: '10px 20px', 
-                          background: '#ef4444', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '7px', 
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
-                      >
-                        Xóa
-                      </button>
+                  <td style={tdStyle}>{product.category}</td>
+                  <td style={tdStyle}>{money(product.price)}</td>
+                  <td style={tdStyle}>{product.stock}</td>
+                  <td style={tdStyle}>{product.sold}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button onClick={() => setSelectedProductId(product.id)} style={actionButton('#3b82f6')}>Chi tiết</button>
+                      <button onClick={() => openEditModal(product)} style={actionButton('#10b981')}>Sửa</button>
+                      <button onClick={() => handleDelete(product.id)} style={actionButton('#ef4444')}>Xóa</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{ 
-              padding: '20px 24px', 
-              borderTop: '1px solid #2a2f3e',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === 1 ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === 1 ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                ← Trước
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  style={{
-                    padding: '8px 14px',
-                    background: currentPage === page ? '#f97316' : '#2a2f3e',
-                    color: 'white',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: currentPage === page ? 600 : 500,
-                    minWidth: '40px'
-                  }}
-                >
-                  {page}
-                </button>
-              ))}
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === totalPages ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === totalPages ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-              >
-                Sau →
-              </button>
-            </div>
-          )}
         </div>
+      </div>
 
-        {showAddModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowAddModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '600px',
-              width: '90%',
-              maxHeight: '80vh',
-              overflowY: 'auto'
+      {showAddModal && (
+        <Modal title="Thêm sản phẩm mới" onClose={() => setShowAddModal(false)} onSubmit={handleCreate} submitLabel="Thêm sản phẩm">
+          <FormFields form={form} setForm={setForm} onPickImage={() => addImageInputRef.current?.click()} />
+          <input
+            ref={addImageInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(event) => {
+              handleImageFile(event.target.files?.[0])
+              event.currentTarget.value = ''
             }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Thêm Sản Phẩm Mới</h2>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Tên sản phẩm</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập tên sản phẩm"
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
+          />
+        </Modal>
+      )}
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>SKU</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập mã SKU"
-                  value={newProduct.sku}
-                  onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
+      {showEditModal && (
+        <Modal title="Chỉnh sửa sản phẩm" onClose={() => setShowEditModal(false)} onSubmit={handleUpdate} submitLabel="Cập nhật">
+          <FormFields form={form} setForm={setForm} onPickImage={() => editImageInputRef.current?.click()} />
+          <input
+            ref={editImageInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(event) => {
+              handleImageFile(event.target.files?.[0])
+              event.currentTarget.value = ''
+            }}
+          />
+        </Modal>
+      )}
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Danh mục</label>
-                <select 
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    cursor: 'pointer'
-                  }}>
-                  <option value="">Chọn danh mục</option>
-                  <option value="Laptop">Laptop</option>
-                  <option value="Điện thoại">Điện thoại</option>
-                  <option value="Máy tính bảng">Máy tính bảng</option>
-                  <option value="Phụ kiện">Phụ kiện</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Giá bán</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Số lượng</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={newProduct.stock}
-                    onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Mô tả</label>
-                <textarea 
-                  placeholder="Nhập mô tả sản phẩm" 
-                  rows={4}
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    resize: 'vertical'
-                  }} 
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setNewProduct({ name: '', sku: '', category: '', price: '', stock: '', description: '' })
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#374151'}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleAddProduct}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#f97316',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#ea580c'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#f97316'}
-                >
-                  Thêm Sản Phẩm
-                </button>
-              </div>
-            </div>
+      {selectedProduct && (
+        <Modal title="Chi tiết sản phẩm" onClose={() => setSelectedProductId(null)} hideSubmit>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <img src={selectedProduct.image} alt={selectedProduct.name} style={{ width: '100%', height: '220px', objectFit: 'cover', borderRadius: '12px' }} />
+            <div><strong>Tên:</strong> {selectedProduct.name}</div>
+            <div><strong>SKU:</strong> {selectedProduct.sku}</div>
+            <div><strong>Danh mục:</strong> {selectedProduct.category}</div>
+            <div><strong>Giá:</strong> {money(selectedProduct.price)}</div>
+            <div><strong>Tồn kho:</strong> {selectedProduct.stock}</div>
+            <div><strong>Đã bán:</strong> {selectedProduct.sold}</div>
+            <div><strong>Mô tả:</strong> {selectedProduct.description || 'Không có mô tả'}</div>
           </div>
-        )}
+        </Modal>
+      )}
+    </div>
+  )
+}
 
-        {showDetailModal && selectedProduct && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowDetailModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '600px',
-              width: '90%',
-              maxHeight: '80vh',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Chi Tiết Sản Phẩm</h2>
-              
-              <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-                <img 
-                  src={selectedProduct.image} 
-                  alt={selectedProduct.name}
-                  style={{ 
-                    width: '150px', 
-                    height: '150px', 
-                    background: '#2a2f3e', 
-                    borderRadius: '12px',
-                    objectFit: 'cover'
-                  }}
-                  onError={(e) => {
-                    const img = e.currentTarget as HTMLImageElement
-                    img.style.display = 'none'
-                  }}
-                />
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'white' }}>{selectedProduct.name}</h3>
-                  <div style={{ marginBottom: '8px' }}>
-                    <span style={{ color: '#8b92a7', fontSize: '14px' }}>SKU: </span>
-                    <span style={{ color: 'white', fontSize: '14px' }}>{selectedProduct.sku}</span>
-                  </div>
-                  <div style={{ marginBottom: '8px' }}>
-                    <span style={{ color: '#8b92a7', fontSize: '14px' }}>Danh mục: </span>
-                    <span style={{ color: 'white', fontSize: '14px' }}>{selectedProduct.category}</span>
-                  </div>
-                  <div style={{ marginBottom: '8px' }}>
-                    <span style={{ color: '#8b92a7', fontSize: '14px' }}>Giá: </span>
-                    <span style={{ color: '#f97316', fontSize: '18px', fontWeight: 600 }}>{selectedProduct.price.toLocaleString('vi-VN')}₫</span>
-                  </div>
-                </div>
-              </div>
+function FormFields({
+  form,
+  setForm,
+  onPickImage,
+}: {
+  form: ProductForm
+  setForm: Dispatch<SetStateAction<ProductForm>>
+  onPickImage: () => void
+}) {
+  return (
+    <div style={{ display: 'grid', gap: '14px' }}>
+      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên sản phẩm" style={inputStyle} />
+      <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="SKU" style={inputStyle} />
+      <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Danh mục" style={inputStyle} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="Giá" type="number" style={inputStyle} />
+        <input value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="Số lượng" type="number" style={inputStyle} />
+      </div>
+      <div style={{ display: 'grid', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" onClick={onPickImage} style={secondaryButtonStyle}>
+            Chọn ảnh từ máy
+          </button>
+          <input
+            value={form.image.startsWith('data:') ? 'Đã chọn ảnh từ máy' : form.image}
+            onChange={(e) => setForm({ ...form, image: e.target.value })}
+            placeholder="Hoặc dán URL ảnh"
+            style={{ ...inputStyle, flex: 1, minWidth: '240px' }}
+          />
+        </div>
+        <div style={{ color: '#8b92a7', fontSize: '13px' }}>
+          Chọn file sẽ mở cửa sổ chọn ảnh trên máy và lưu ảnh để xem trước.
+        </div>
+      </div>
+      {form.image && (
+        <div style={{ display: 'grid', gap: '8px' }}>
+          <div style={{ color: '#8b92a7', fontSize: '13px' }}>Xem trước ảnh</div>
+          <img
+            src={form.image}
+            alt="Preview"
+            style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #2a2f3e' }}
+          />
+        </div>
+      )}
+      <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Mô tả" rows={4} style={{ ...inputStyle, resize: 'vertical' }} />
+    </div>
+  )
+}
 
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(3, 1fr)', 
-                gap: '16px',
-                marginBottom: '24px',
-                padding: '20px',
-                background: '#0f1419',
-                borderRadius: '8px'
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: 'white', marginBottom: '4px' }}>{selectedProduct.stock}</div>
-                  <div style={{ fontSize: '13px', color: '#8b92a7' }}>Tồn kho</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: '#10b981', marginBottom: '4px' }}>{selectedProduct.sold}</div>
-                  <div style={{ fontSize: '13px', color: '#8b92a7' }}>Đã bán</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: '#3b82f6', marginBottom: '4px' }}>
-                    {((selectedProduct.sold / (selectedProduct.sold + selectedProduct.stock)) * 100).toFixed(0)}%
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#8b92a7' }}>Tỷ lệ bán</div>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '14px', color: '#8b92a7', marginBottom: '8px' }}>Trạng thái</div>
-                <span style={{ 
-                  padding: '8px 16px', 
-                  borderRadius: '6px', 
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  background: selectedProduct.stock > 10 ? '#10b98120' : selectedProduct.stock > 5 ? '#f9731620' : '#ef444420',
-                  color: selectedProduct.stock > 10 ? '#10b981' : selectedProduct.stock > 5 ? '#f97316' : '#ef4444'
-                }}>
-                  {selectedProduct.stock > 10 ? 'Còn hàng' : selectedProduct.stock > 5 ? 'Sắp hết' : 'Hết hàng'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => setShowDetailModal(false)}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#374151'}
-                >
-                  Đóng
-                </button>
-                <button 
-                  onClick={handleOpenEdit}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#3b82f6'}
-                >
-                  Chỉnh Sửa
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showEditModal && selectedProduct && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-          onClick={() => setShowEditModal(false)}
-          >
-            <div style={{
-              background: '#1a1f2e',
-              padding: '32px',
-              borderRadius: '12px',
-              border: '1px solid #2a2f3e',
-              maxWidth: '600px',
-              width: '90%',
-              maxHeight: '80vh',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 600 }}>Chỉnh Sửa Sản Phẩm</h2>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Tên sản phẩm</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập tên sản phẩm"
-                  value={editProduct.name}
-                  onChange={(e) => setEditProduct({...editProduct, name: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>SKU</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập mã SKU"
-                  value={editProduct.sku}
-                  onChange={(e) => setEditProduct({...editProduct, sku: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px'
-                  }} 
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Danh mục</label>
-                <select 
-                  value={editProduct.category}
-                  onChange={(e) => setEditProduct({...editProduct, category: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: '#0f1419',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '15px',
-                    cursor: 'pointer'
-                  }}>
-                  <option value="">Chọn danh mục</option>
-                  <option value="Laptop">Laptop</option>
-                  <option value="Điện thoại">Điện thoại</option>
-                  <option value="Máy tính bảng">Máy tính bảng</option>
-                  <option value="Phụ kiện">Phụ kiện</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Giá bán</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={editProduct.price}
-                    onChange={(e) => setEditProduct({...editProduct, price: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#8b92a7' }}>Số lượng</label>
-                  <input 
-                    type="number" 
-                    placeholder="0"
-                    value={editProduct.stock}
-                    onChange={(e) => setEditProduct({...editProduct, stock: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0f1419',
-                      border: '1px solid #2a2f3e',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '15px'
-                    }} 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  onClick={() => {
-                    setShowEditModal(false)
-                    setEditProduct({ name: '', sku: '', category: '', price: '', stock: '', description: '' })
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#374151',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#4b5563'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#374151'}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleUpdateProduct}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
-                >
-                  Cập Nhật
-                </button>
-              </div>
-            </div>
+function Modal({
+  title,
+  onClose,
+  onSubmit,
+  submitLabel = 'Lưu',
+  hideSubmit = false,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  onSubmit?: () => void
+  submitLabel?: string
+  hideSubmit?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
+          <h2 style={{ margin: 0, fontSize: '20px' }}>{title}</h2>
+          <button onClick={onClose} style={closeButtonStyle}>×</button>
+        </div>
+        {children}
+        {!hideSubmit && onSubmit && (
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button onClick={onClose} style={secondaryButtonStyle}>Hủy</button>
+            <button onClick={onSubmit} style={primaryButtonStyle}>{submitLabel}</button>
           </div>
         )}
       </div>
     </div>
   )
+}
+
+const thStyle: CSSProperties = {
+  padding: '16px 18px',
+  textAlign: 'left',
+  color: '#8b92a7',
+  fontSize: '12px',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '1px',
+}
+
+const tdStyle: CSSProperties = {
+  padding: '16px 18px',
+  color: '#cbd5e1',
+  verticalAlign: 'middle',
+}
+
+const inputStyle: CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  background: '#0f1419',
+  border: '1px solid #2a2f3e',
+  borderRadius: '10px',
+  color: 'white',
+}
+
+const overlayStyle: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.75)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '24px',
+  zIndex: 1000,
+}
+
+const modalStyle: CSSProperties = {
+  width: 'min(100%, 760px)',
+  background: '#1a1f2e',
+  border: '1px solid #2a2f3e',
+  borderRadius: '16px',
+  padding: '24px',
+}
+
+const closeButtonStyle: CSSProperties = {
+  width: '36px',
+  height: '36px',
+  borderRadius: '10px',
+  border: '1px solid #2a2f3e',
+  background: '#0f1419',
+  color: 'white',
+  cursor: 'pointer',
+  fontSize: '20px',
+}
+
+const primaryButtonStyle: CSSProperties = {
+  padding: '10px 16px',
+  borderRadius: '10px',
+  border: 'none',
+  background: '#7a73ea',
+  color: 'white',
+  cursor: 'pointer',
+  fontWeight: 700,
+}
+
+const secondaryButtonStyle: CSSProperties = {
+  padding: '10px 16px',
+  borderRadius: '10px',
+  border: '1px solid #2a2f3e',
+  background: '#0f1419',
+  color: 'white',
+  cursor: 'pointer',
+  fontWeight: 700,
+}
+
+function actionButton(color: string): CSSProperties {
+  return {
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: 'none',
+    background: color,
+    color: 'white',
+    cursor: 'pointer',
+    fontWeight: 700,
+  }
+}
+
+function money(value: number) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value)
 }
 
 export default Products
