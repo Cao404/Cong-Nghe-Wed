@@ -1,4 +1,96 @@
-﻿.dang-ky-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f1419; padding: 20px; }
-.dang-ky-page__card { background: #1a1f2e; padding: 40px; border-radius: 12px; width: 100%; max-width: 460px; border: 1px solid #2a2f3e; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
-.dang-ky-page__header { text-align: center; margin-bottom: 32px; }
-.dang-ky-page__error { padding: 12px 16px; background: #ef444420; border: 1px solid #ef4444; border-radius: 8px; color: #ef4444; font-size: 14px; margin-bottom: 24px; }
+.dang-ky-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f1419;
+  padding: 20px;
+}
+
+.dang-ky-page__card {
+  background: #1a1f2e;
+  padding: 40px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 460px;
+  border: 1px solid #2a2f3e;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.dang-ky-page__header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.dang-ky-page__title {
+  font-size: 28px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.dang-ky-page__subtitle {
+  color: #8b92a7;
+  font-size: 16px;
+}
+
+.dang-ky-page__error {
+  padding: 12px 16px;
+  background: #ef444420;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.dang-ky-page__group {
+  margin-bottom: 20px;
+}
+
+.dang-ky-page__group--large {
+  margin-bottom: 28px;
+}
+
+.dang-ky-page__label {
+  display: block;
+  color: #8b92a7;
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.dang-ky-page__input {
+  width: 100%;
+  padding: 14px 16px;
+  background: #0f1419;
+  border: 1px solid #2a2f3e;
+  border-radius: 10px;
+  color: white;
+  font-size: 15px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.dang-ky-page__submit {
+  width: 100%;
+  padding: 14px 16px;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dang-ky-page__back {
+  width: 100%;
+  padding: 14px 16px;
+  background: #0f1419;
+  color: #9ca3af;
+  border: 1px solid #2a2f3e;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
