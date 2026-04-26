@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../styles/header.css'
 
 interface Notification {
   id: number
@@ -46,19 +47,17 @@ function Header({ title, searchValue = '', onSearchChange, searchPlaceholder = '
   }
 
   return (
-    <div
-      style={{
+    <div className="header-bar" style={{
         padding: '24px 40px',
         borderBottom: '1px solid #2a2f3e',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         background: '#0f1419',
-      }}
-    >
+      }}>
       <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, letterSpacing: '0.4px', color: 'white' }}>{title}</h1>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div className="header-bar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <button
           style={{
             width: '42px',
@@ -81,7 +80,7 @@ function Header({ title, searchValue = '', onSearchChange, searchPlaceholder = '
           Cài
         </button>
 
-        <div style={{ position: 'relative' }}>
+        <div className="header-bar__notifications" style={{ position: 'relative' }}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             style={{
@@ -284,7 +283,7 @@ function Header({ title, searchValue = '', onSearchChange, searchPlaceholder = '
         </div>
 
         {onSearchChange && (
-          <div style={{ position: 'relative' }}>
+          <div className="header-bar__search" style={{ position: 'relative' }}>
             <input
               type="text"
               placeholder={searchPlaceholder}

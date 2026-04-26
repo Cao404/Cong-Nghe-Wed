@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../styles/kiem-duyet.css'
 
 interface ContentItem {
   id: number
@@ -174,8 +175,8 @@ function Audit() {
         </div>
       </div>
 
-      <div style={{ padding: '40px' }}>
-        <div style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
+      <div className="kiem-duyet-page__content" style={{ padding: '40px' }}>
+        <div className="kiem-duyet-page__panel" style={{ background: '#1a1f2e', borderRadius: '8px', border: '1px solid #2a2f3e', overflow: 'hidden' }}>
           <div style={{ 
             display: 'flex', 
             borderBottom: '1px solid #2a2f3e',
@@ -207,7 +208,7 @@ function Audit() {
             Hiện thị 1-{items.length} trong {items.length} kết quả
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="kiem-duyet-page__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
                 <th style={{ padding: '20px 28px', textAlign: 'left', width: '50px' }}>

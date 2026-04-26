@@ -3,6 +3,7 @@ import Header from './Header'
 import { api, type ApiOrder, type ApiUser } from '../api'
 import { useStore } from '../store/useStore'
 import '../styles/khach-hang.css'
+import '../styles/khach-hang.css'
 
 type CustomerStatus = 'active' | 'inactive'
 type CustomerFilter = 'all' | CustomerStatus
@@ -197,6 +198,7 @@ function Customers() {
           {stats.map((stat) => (
             <div
               key={stat.label}
+              className="khach-hang-page__stat"
               style={{
                 background: '#1a1f2e',
                 padding: '28px',
@@ -208,6 +210,7 @@ function Customers() {
               }}
             >
               <div
+                className="khach-hang-page__stat-icon"
                 style={{
                   width: '64px',
                   height: '64px',
@@ -222,10 +225,10 @@ function Customers() {
                 {stat.icon}
               </div>
               <div>
-                <div style={{ fontSize: '32px', fontWeight: 700, color: 'white', marginBottom: '4px' }}>
+                <div className="khach-hang-page__stat-value" style={{ fontSize: '32px', fontWeight: 700, color: 'white', marginBottom: '4px' }}>
                   {stat.value}
                 </div>
-                <div style={{ fontSize: '14px', color: '#8b92a7' }}>{stat.label}</div>
+                <div className="khach-hang-page__stat-label" style={{ fontSize: '14px', color: '#8b92a7' }}>{stat.label}</div>
               </div>
             </div>
           ))}
@@ -234,15 +237,16 @@ function Customers() {
         <div className="khach-hang-page__panel">
           <div className="khach-hang-page__panel-header">
             <div>
-              <div style={{ fontSize: '16px', color: 'white', fontWeight: 500 }}>Danh sách khách hàng</div>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+              <div className="khach-hang-page__panel-title" style={{ fontSize: '16px', color: 'white', fontWeight: 500 }}>Danh sách khách hàng</div>
+              <div className="khach-hang-page__panel-subtitle" style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
                 Dữ liệu lấy từ người dùng thật và đơn hàng trên backend
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="khach-hang-page__panel-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as CustomerFilter)}
+                className="khach-hang-page__select"
                 style={{
                   padding: '8px 12px',
                   background: '#0f1419',
