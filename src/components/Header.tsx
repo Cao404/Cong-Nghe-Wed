@@ -47,80 +47,28 @@ function Header({ title, searchValue = '', onSearchChange, searchPlaceholder = '
   }
 
   return (
-    <div className="header-bar" style={{
-        padding: '24px 40px',
-        borderBottom: '1px solid #2a2f3e',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: '#0f1419',
-      }}>
-      <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 600, letterSpacing: '0.4px', color: 'white' }}>{title}</h1>
+    <div className="header-bar">
+      <h1 className="header-bar__title">{title}</h1>
 
-      <div className="header-bar__actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div className="header-bar__actions">
         <button
-          style={{
-            width: '42px',
-            height: '42px',
-            background: '#1a1f2e',
-            border: '1px solid #2a2f3e',
-            borderRadius: '8px',
-            color: '#8b92a7',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '13px',
-            fontWeight: 600,
-            transition: 'all 0.2s',
-          }}
+          className="header-bar__icon-button"
           onMouseEnter={(e) => (e.currentTarget.style.background = '#232d3f')}
           onMouseLeave={(e) => (e.currentTarget.style.background = '#1a1f2e')}
         >
           Cài
         </button>
 
-        <div className="header-bar__notifications" style={{ position: 'relative' }}>
+        <div className="header-bar__notifications">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            style={{
-              width: '42px',
-              height: '42px',
-              background: '#1a1f2e',
-              border: '1px solid #2a2f3e',
-              borderRadius: '8px',
-              color: '#8b92a7',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '13px',
-              fontWeight: 600,
-              position: 'relative',
-              transition: 'all 0.2s',
-            }}
+            className="header-bar__notifications-button"
             onMouseEnter={(e) => (e.currentTarget.style.background = '#232d3f')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#1a1f2e')}
           >
             TB
             {unreadCount > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '6px',
-                  right: '6px',
-                  width: '18px',
-                  height: '18px',
-                  background: '#334155',
-                  borderRadius: '50%',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              <span className="header-bar__badge">
                 {unreadCount}
               </span>
             )}
@@ -129,60 +77,25 @@ function Header({ title, searchValue = '', onSearchChange, searchPlaceholder = '
           {showNotifications && (
             <>
               <div
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  zIndex: 999,
-                }}
+                className="header-bar__overlay"
                 onClick={() => setShowNotifications(false)}
               />
               <div
-                style={{
-                  position: 'absolute',
-                  top: '50px',
-                  right: 0,
-                  width: '380px',
-                  maxHeight: '500px',
-                  background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
-                  zIndex: 1000,
-                  overflow: 'hidden',
-                }}
+                className="header-bar__dropdown"
               >
                 <div
-                  style={{
-                    padding: '16px 20px',
-                    borderBottom: '1px solid #e2e8f0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  className="header-bar__dropdown-header"
                 >
                   <div>
-                    <div style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>Thông báo</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                    <div className="header-bar__dropdown-title">Thông báo</div>
+                    <div className="header-bar__dropdown-subtitle">
                       {unreadCount > 0 ? `${unreadCount} thông báo mới` : 'Không có thông báo mới'}
                     </div>
                   </div>
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllAsRead}
-                      style={{
-                        padding: '6px 12px',
-                        background: '#f8fafc',
-                        color: '#475569',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        fontWeight: 500,
-                        transition: 'all 0.2s',
-                      }}
+                      className="header-bar__mark-all"
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
                     >
@@ -191,86 +104,37 @@ function Header({ title, searchValue = '', onSearchChange, searchPlaceholder = '
                   )}
                 </div>
 
-                <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                <div className="header-bar__dropdown-list">
                   {notifications.length === 0 ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#6b7280' }}>
-                      <div style={{ fontSize: '14px' }}>Không có thông báo</div>
+                    <div className="header-bar__empty">
+                      <div className="header-bar__empty-text">Không có thông báo</div>
                     </div>
                   ) : (
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
                         onClick={() => handleMarkAsRead(notification.id)}
-                        style={{
-                          padding: '16px 20px',
-                          borderBottom: '1px solid #e2e8f0',
-                          cursor: 'pointer',
-                          background: notification.read ? '#ffffff' : '#f8fafc',
-                          transition: 'background 0.2s',
-                        }}
+                        className={`header-bar__notification-item ${notification.read ? 'header-bar__notification-item--read' : 'header-bar__notification-item--unread'}`}
                         onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = notification.read ? '#ffffff' : '#f8fafc')}
                       >
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                          <div
-                            style={{
-                              minWidth: '40px',
-                              height: '40px',
-                              borderRadius: '8px',
-                              background: '#ffffff',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              color: '#334155',
-                              flexShrink: 0,
-                            }}
-                          >
+                        <div className="header-bar__notification-row">
+                          <div className="header-bar__notification-type">
                             {getNotificationLabel(notification.type)}
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                marginBottom: '4px',
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: '14px',
-                                  fontWeight: notification.read ? 400 : 600,
-                                  color: notification.read ? '#64748b' : '#0f172a',
-                                }}
-                              >
+                          <div className="header-bar__notification-body">
+                            <div className="header-bar__notification-heading">
+                              <div className={notification.read ? 'header-bar__notification-title header-bar__notification-title--read' : 'header-bar__notification-title header-bar__notification-title--unread'}>
                                 {notification.title}
                               </div>
                               {!notification.read && (
-                                <div
-                                  style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    background: '#ef4444',
-                                    flexShrink: 0,
-                                    marginTop: '4px',
-                                  }}
-                                />
+                                <div className="header-bar__notification-dot" />
                               )}
                             </div>
-                            <div
-                              style={{
-                                fontSize: '13px',
-                                color: '#6b7280',
-                                marginBottom: '6px',
-                                lineHeight: '1.4',
-                              }}
-                            >
+                            <div className="header-bar__notification-message">
                               {notification.message}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#4b5563' }}>{notification.time}</div>
+                            <div className="header-bar__notification-time">{notification.time}</div>
                           </div>
                         </div>
                       </div>
@@ -283,22 +147,13 @@ function Header({ title, searchValue = '', onSearchChange, searchPlaceholder = '
         </div>
 
         {onSearchChange && (
-          <div className="header-bar__search" style={{ position: 'relative' }}>
+          <div className="header-bar__search">
             <input
               type="text"
               placeholder={searchPlaceholder}
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
-              style={{
-                padding: '10px 18px 10px 18px',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                color: '#0f172a',
-                fontSize: '15px',
-                width: '240px',
-                transition: 'all 0.2s',
-              }}
+              className="header-bar__search-input"
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = '#94a3b8'
                 e.currentTarget.style.width = '280px'

@@ -3,7 +3,6 @@ import Header from './Header'
 import { api, type ApiOrder, type ApiUser } from '../api'
 import { useStore } from '../store/useStore'
 import '../styles/khach-hang.css'
-import '../styles/khach-hang.css'
 
 type CustomerStatus = 'active' | 'inactive'
 type CustomerFilter = 'all' | CustomerStatus
@@ -162,10 +161,10 @@ function Customers() {
     const inactiveCustomers = customers.length - activeCustomers
 
     return [
-      { label: 'Tổng khách hàng', value: customers.length.toString(), icon: '👥', color: '#3b82f6' },
-      { label: 'Đang hoạt động', value: activeCustomers.toString(), icon: '✅', color: '#10b981' },
-      { label: 'Không hoạt động', value: inactiveCustomers.toString(), icon: '⏸️', color: '#f59e0b' },
-      { label: 'Tổng chi tiêu', value: currency.format(totalSpent), icon: '💰', color: '#8b5cf6' },
+      { label: 'Tổng khách hàng', value: customers.length.toString(), icon: '👥', tone: 'blue' as const },
+      { label: 'Đang hoạt động', value: activeCustomers.toString(), icon: '✅', tone: 'green' as const },
+      { label: 'Không hoạt động', value: inactiveCustomers.toString(), icon: '⏸️', tone: 'amber' as const },
+      { label: 'Tổng chi tiêu', value: currency.format(totalSpent), icon: '💰', tone: 'purple' as const },
     ]
   }, [customers])
 
@@ -199,29 +198,8 @@ function Customers() {
             <div
               key={stat.label}
               className="khach-hang-page__stat"
-              style={{
-                background: '#1a1f2e',
-                padding: '28px',
-                borderRadius: '12px',
-                border: '1px solid #2a2f3e',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '20px',
-              }}
             >
-              <div
-                className="khach-hang-page__stat-icon"
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '12px',
-                  background: `${stat.color}20`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '32px',
-                }}
-              >
+              <div className={`khach-hang-page__stat-icon khach-hang-page__stat-icon--${stat.tone}`}>
                 {stat.icon}
               </div>
               <div>
@@ -247,15 +225,6 @@ function Customers() {
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as CustomerFilter)}
                 className="khach-hang-page__select"
-                style={{
-                  padding: '8px 12px',
-                  background: '#0f1419',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  color: 'white',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                }}
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="active">Đang hoạt động</option>
@@ -277,117 +246,37 @@ function Customers() {
 
           <table className="khach-hang-page__table">
             <thead>
-              <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
-                <th style={{ padding: '20px 28px', textAlign: 'left', width: '50px' }}>
+              <tr className="khach-hang-page__table-head-row">
+                <th className="khach-hang-page__th khach-hang-page__th--checkbox">
                   <input
                     type="checkbox"
                     checked={pageSelectedAll}
                     onChange={(event) => handleSelectAll(event.target.checked)}
-                    style={{ cursor: 'pointer', width: '20px', height: '20px' }}
+                    className="khach-hang-page__checkbox"
                   />
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'left',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th">
                   KHÁCH HÀNG
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'left',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th">
                   LIÊN HỆ
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'center',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th khach-hang-page__th--center">
                   ĐƠN HÀNG
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'left',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th">
                   TỔNG CHI TIÊU
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'left',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th">
                   NGÀY THAM GIA
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'left',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th">
                   ĐƠN CUỐI
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'center',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th khach-hang-page__th--center">
                   TRẠNG THÁI
                 </th>
-                <th
-                  style={{
-                    padding: '20px 28px',
-                    textAlign: 'center',
-                    color: '#8b92a7',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                  }}
-                >
+                <th className="khach-hang-page__th khach-hang-page__th--center">
                   THAO TÁC
                 </th>
               </tr>
@@ -395,95 +284,62 @@ function Customers() {
             <tbody>
               {!loading && !error && currentCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: '40px 28px', textAlign: 'center', color: '#8b92a7' }}>
+                  <td colSpan={9} className="khach-hang-page__empty-cell">
                     Không tìm thấy khách hàng phù hợp
                   </td>
                 </tr>
               ) : (
                 currentCustomers.map((customer) => (
-                  <tr
-                    key={customer.id}
-                    style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }}
-                    onMouseEnter={(event) => (event.currentTarget.style.background = '#0f1419')}
-                    onMouseLeave={(event) => (event.currentTarget.style.background = 'transparent')}
-                  >
-                    <td style={{ padding: '24px 28px' }}>
+                  <tr key={customer.id} className="khach-hang-page__table-row">
+                    <td className="khach-hang-page__td">
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(customer.id)}
                         onChange={() => handleSelectItem(customer.id)}
-                        style={{ cursor: 'pointer', width: '20px', height: '20px' }}
+                        className="khach-hang-page__checkbox"
                       />
                     </td>
-                    <td style={{ padding: '24px 28px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div
-                          style={{
-                            width: '56px',
-                            height: '56px',
-                            borderRadius: '50%',
-                            background: '#374151',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '28px',
-                            flexShrink: 0,
-                          }}
-                        >
+                    <td className="khach-hang-page__td">
+                      <div className="khach-hang-page__customer">
+                        <div className="khach-hang-page__avatar">
                           {customer.avatar}
                         </div>
                         <div>
-                          <div style={{ color: 'white', fontSize: '16px', fontWeight: 500, marginBottom: '4px' }}>
+                          <div className="khach-hang-page__name">
                             {customer.name}
                           </div>
-                          <div style={{ color: '#6b7280', fontSize: '13px' }}>
+                          <div className="khach-hang-page__muted">
                             ID: #{customer.id.toString().padStart(4, '0')}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '24px 28px' }}>
-                      <div style={{ color: '#8b92a7', fontSize: '15px', marginBottom: '4px' }}>{customer.email}</div>
-                      <div style={{ color: '#6b7280', fontSize: '13px' }}>{customer.phone}</div>
+                    <td className="khach-hang-page__td">
+                      <div className="khach-hang-page__td--muted">{customer.email}</div>
+                      <div className="khach-hang-page__muted">{customer.phone}</div>
                     </td>
-                    <td style={{ padding: '24px 28px', textAlign: 'center', color: 'white', fontSize: '16px', fontWeight: 600 }}>
+                    <td className="khach-hang-page__td khach-hang-page__td--center">
                       {customer.totalOrders}
                     </td>
-                    <td style={{ padding: '24px 28px', color: 'white', fontSize: '16px', fontWeight: 600 }}>
+                    <td className="khach-hang-page__td khach-hang-page__td--money">
                       {currency.format(customer.totalSpent)}
                     </td>
-                    <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{customer.joinDate}</td>
-                    <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{customer.lastOrder}</td>
-                    <td style={{ padding: '24px 28px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <td className="khach-hang-page__td khach-hang-page__td--muted">{customer.joinDate}</td>
+                    <td className="khach-hang-page__td khach-hang-page__td--muted">{customer.lastOrder}</td>
+                    <td className="khach-hang-page__td">
+                      <div className="khach-hang-page__status-wrap">
                         <span
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            background: customer.status === 'active' ? '#10b98120' : '#6b728020',
-                            color: customer.status === 'active' ? '#10b981' : '#6b7280',
-                          }}
+                          className={`khach-hang-page__status ${customer.status === 'active' ? 'khach-hang-page__status--active' : 'khach-hang-page__status--inactive'}`}
                         >
                           {customer.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
                         </span>
                       </div>
                     </td>
-                    <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <td className="khach-hang-page__td khach-hang-page__td--center">
+                      <div className="khach-hang-page__actions">
                         <button
                           onClick={() => setSelectedCustomer(customer)}
-                          style={{
-                            padding: '8px 16px',
-                            background: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                          }}
+                          className="khach-hang-page__action-button"
                         >
                           Chi tiết
                         </button>
@@ -496,67 +352,29 @@ function Customers() {
           </table>
 
           {totalPages > 1 && (
-            <div
-              style={{
-                padding: '20px 24px',
-                borderTop: '1px solid #2a2f3e',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-              }}
-            >
+            <div className="khach-hang-page__pagination">
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === 1 ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === 1 ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
+                className={`khach-hang-page__pagination-button khach-hang-page__pagination-button--base ${currentPage === 1 ? 'khach-hang-page__pagination-button--disabled' : 'khach-hang-page__pagination-button--idle'}`}
               >
                 ← Trước
               </button>
 
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  style={{
-                    padding: '8px 14px',
-                    background: currentPage === page ? '#f97316' : '#2a2f3e',
-                    color: 'white',
-                    border: '1px solid #2a2f3e',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: currentPage === page ? 600 : 500,
-                    minWidth: '40px',
-                  }}
-                >
-                  {page}
-                </button>
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`khach-hang-page__pagination-button khach-hang-page__pagination-button--base ${currentPage === page ? 'khach-hang-page__pagination-button--active' : 'khach-hang-page__pagination-button--idle'}`}
+                  >
+                    {page}
+                  </button>
               ))}
 
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                style={{
-                  padding: '8px 12px',
-                  background: currentPage === totalPages ? '#1a1f2e' : '#2a2f3e',
-                  color: currentPage === totalPages ? '#6b7280' : 'white',
-                  border: '1px solid #2a2f3e',
-                  borderRadius: '6px',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
+                className={`khach-hang-page__pagination-button khach-hang-page__pagination-button--base ${currentPage === totalPages ? 'khach-hang-page__pagination-button--disabled' : 'khach-hang-page__pagination-button--idle'}`}
               >
                 Sau →
               </button>
@@ -566,126 +384,69 @@ function Customers() {
       </div>
 
       {selectedCustomer && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.72)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={() => setSelectedCustomer(null)}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '760px',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              background: '#1a1f2e',
-              border: '1px solid #2a2f3e',
-              borderRadius: '16px',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.35)',
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div
-              style={{
-                padding: '24px',
-                borderBottom: '1px solid #2a2f3e',
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '16px',
-                alignItems: 'center',
-              }}
-            >
+        <div className="khach-hang-page__modal" onClick={() => setSelectedCustomer(null)}>
+          <div className="khach-hang-page__modal-card" onClick={(event) => event.stopPropagation()}>
+            <div className="khach-hang-page__modal-header">
               <div>
-                <h2 style={{ margin: 0, color: 'white', fontSize: '22px' }}>{selectedCustomer.name}</h2>
-                <div style={{ color: '#8b92a7', marginTop: '6px', fontSize: '14px' }}>{selectedCustomer.email}</div>
+                <h2 className="khach-hang-page__modal-title">{selectedCustomer.name}</h2>
+                <div className="khach-hang-page__modal-subtitle">{selectedCustomer.email}</div>
               </div>
               <button
                 onClick={() => setSelectedCustomer(null)}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  border: '1px solid #2a2f3e',
-                  background: '#0f1419',
-                  color: 'white',
-                  cursor: 'pointer',
-                }}
+                className="khach-hang-page__modal-close"
               >
                 ×
               </button>
             </div>
 
-            <div style={{ padding: '24px', display: 'grid', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                <div style={{ background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '12px', padding: '16px' }}>
-                  <div style={{ color: '#8b92a7', fontSize: '12px', marginBottom: '8px' }}>Tổng đơn</div>
-                  <div style={{ color: 'white', fontSize: '24px', fontWeight: 700 }}>{selectedCustomer.totalOrders}</div>
+            <div className="khach-hang-page__modal-body">
+              <div className="khach-hang-page__modal-grid">
+                <div className="khach-hang-page__modal-card-mini">
+                  <div className="khach-hang-page__mini-label">Tổng đơn</div>
+                  <div className="khach-hang-page__mini-value">{selectedCustomer.totalOrders}</div>
                 </div>
-                <div style={{ background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '12px', padding: '16px' }}>
-                  <div style={{ color: '#8b92a7', fontSize: '12px', marginBottom: '8px' }}>Tổng chi tiêu</div>
-                  <div style={{ color: 'white', fontSize: '24px', fontWeight: 700 }}>{currency.format(selectedCustomer.totalSpent)}</div>
+                <div className="khach-hang-page__modal-card-mini">
+                  <div className="khach-hang-page__mini-label">Tổng chi tiêu</div>
+                  <div className="khach-hang-page__mini-value">{currency.format(selectedCustomer.totalSpent)}</div>
                 </div>
-                <div style={{ background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '12px', padding: '16px' }}>
-                  <div style={{ color: '#8b92a7', fontSize: '12px', marginBottom: '8px' }}>Ngày tham gia</div>
-                  <div style={{ color: 'white', fontSize: '24px', fontWeight: 700 }}>{selectedCustomer.joinDate}</div>
+                <div className="khach-hang-page__modal-card-mini">
+                  <div className="khach-hang-page__mini-label">Ngày tham gia</div>
+                  <div className="khach-hang-page__mini-value">{selectedCustomer.joinDate}</div>
                 </div>
               </div>
 
-              <div>
-                <div style={{ color: 'white', fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
+              <div className="khach-hang-page__modal-section">
+                <div className="khach-hang-page__recent-title">
                   Đơn hàng gần đây
                 </div>
-                <div style={{ display: 'grid', gap: '12px' }}>
+                <div className="khach-hang-page__recent-list">
                   {selectedCustomer.recentOrders.length === 0 ? (
-                    <div style={{ color: '#8b92a7', background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '12px', padding: '18px' }}>
+                    <div className="khach-hang-page__recent-empty">
                       Chưa có đơn hàng nào
                     </div>
                   ) : (
                     selectedCustomer.recentOrders.slice(0, 5).map((order) => (
-                      <div
-                        key={order.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          gap: '16px',
-                          alignItems: 'center',
-                          background: '#0f1419',
-                          border: '1px solid #2a2f3e',
-                          borderRadius: '12px',
-                          padding: '16px',
-                        }}
-                      >
+                      <div key={order.id} className="khach-hang-page__recent-item">
                         <div>
-                          <div style={{ color: 'white', fontSize: '15px', fontWeight: 600 }}>{order.orderCode}</div>
-                          <div style={{ color: '#8b92a7', fontSize: '13px', marginTop: '4px' }}>
+                          <div className="khach-hang-page__recent-code">{order.orderCode}</div>
+                          <div className="khach-hang-page__recent-meta">
                             {formatDateTime(order.createdAt)} • {order.items.length} sản phẩm
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ color: '#10b981', fontSize: '15px', fontWeight: 600 }}>
+                        <div className="khach-hang-page__recent-right">
+                          <div className="khach-hang-page__recent-money">
                             {currency.format(order.total)}
                           </div>
                           <div
-                            style={{
-                              color:
-                                order.status === 'approved'
-                                  ? '#10b981'
-                                  : order.status === 'rejected'
-                                    ? '#ef4444'
-                                    : order.status === 'cancelled'
-                                      ? '#f59e0b'
-                                      : '#3b82f6',
-                              fontSize: '12px',
-                              marginTop: '4px',
-                              textTransform: 'capitalize',
-                            }}
+                            className={`khach-hang-page__recent-status ${
+                              order.status === 'approved'
+                                ? 'khach-hang-page__recent-status--approved'
+                                : order.status === 'rejected'
+                                  ? 'khach-hang-page__recent-status--rejected'
+                                  : order.status === 'cancelled'
+                                    ? 'khach-hang-page__recent-status--cancelled'
+                                    : 'khach-hang-page__recent-status--default'
+                            }`}
                           >
                             {order.status}
                           </div>

@@ -3,6 +3,10 @@
 .khach-hang-page__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 30px; }
 .khach-hang-page__stat { background: #1a1f2e; padding: 28px; border-radius: 12px; border: 1px solid #2a2f3e; display: flex; align-items: center; gap: 20px; }
 .khach-hang-page__stat-icon { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.khach-hang-page__stat-icon--blue { background: #3b82f620; }
+.khach-hang-page__stat-icon--green { background: #10b98120; }
+.khach-hang-page__stat-icon--amber { background: #f59e0b20; }
+.khach-hang-page__stat-icon--purple { background: #8b5cf620; }
 .khach-hang-page__stat-value { font-size: 32px; font-weight: 700; color: white; margin-bottom: 4px; }
 .khach-hang-page__stat-label { font-size: 14px; color: #8b92a7; }
 .khach-hang-page__panel { background: #1a1f2e; border-radius: 8px; border: 1px solid #2a2f3e; overflow: hidden; }
@@ -14,6 +18,7 @@
 .khach-hang-page__summary { padding: 16px 24px; border-bottom: 1px solid #2a2f3e; font-size: 12px; color: #6b7280; }
 .khach-hang-page__table-wrap { overflow: auto; }
 .khach-hang-page__table { width: 100%; border-collapse: collapse; }
+.khach-hang-page__table-head-row { background: #0f1419; border-bottom: 1px solid #2a2f3e; }
 .khach-hang-page__table-head { background: #0f1419; border-bottom: 1px solid #2a2f3e; }
 .khach-hang-page__th { padding: 20px 28px; text-align: left; color: #8b92a7; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 .khach-hang-page__th--checkbox { width: 50px; }
@@ -24,6 +29,7 @@
 .khach-hang-page__td--center { text-align: center; color: white; font-size: 16px; font-weight: 600; }
 .khach-hang-page__td--money { color: white; font-size: 16px; font-weight: 600; }
 .khach-hang-page__td--muted { color: #8b92a7; font-size: 15px; }
+.khach-hang-page__empty-cell { padding: 40px 28px; text-align: center; color: #8b92a7; }
 .khach-hang-page__checkbox { cursor: pointer; width: 20px; height: 20px; }
 .khach-hang-page__customer { display: flex; align-items: center; gap: 14px; }
 .khach-hang-page__avatar { width: 56px; height: 56px; border-radius: 50%; background: #374151; display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
@@ -31,11 +37,14 @@
 .khach-hang-page__muted { color: #6b7280; font-size: 13px; }
 .khach-hang-page__status-wrap { display: flex; justify-content: center; }
 .khach-hang-page__status { padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+.khach-hang-page__status--active { background: #10b98120; color: #10b981; }
+.khach-hang-page__status--inactive { background: #6b728020; color: #6b7280; }
 .khach-hang-page__action-button { padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
 .khach-hang-page__actions { display: flex; gap: 8px; justify-content: center; }
 .khach-hang-page__empty { padding: 40px 28px; text-align: center; color: #8b92a7; }
 .khach-hang-page__pagination { padding: 20px 24px; border-top: 1px solid #2a2f3e; display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; }
 .khach-hang-page__pagination-button { padding: 8px 12px; border: 1px solid #2a2f3e; border-radius: 6px; font-size: 14px; font-weight: 500; }
+.khach-hang-page__pagination-button--base { min-width: 40px; }
 .khach-hang-page__pagination-button--active { background: #f97316; color: white; }
 .khach-hang-page__pagination-button--idle { background: #2a2f3e; color: white; }
 .khach-hang-page__pagination-button--disabled { background: #1a1f2e; color: #6b7280; cursor: not-allowed; }
@@ -59,5 +68,9 @@
 .khach-hang-page__recent-right { text-align: right; }
 .khach-hang-page__recent-money { color: #10b981; font-size: 15px; font-weight: 600; }
 .khach-hang-page__recent-status { font-size: 12px; margin-top: 4px; text-transform: capitalize; }
+.khach-hang-page__recent-status--approved { color: #10b981; }
+.khach-hang-page__recent-status--rejected { color: #ef4444; }
+.khach-hang-page__recent-status--cancelled { color: #f59e0b; }
+.khach-hang-page__recent-status--default { color: #3b82f6; }
 .khach-hang-page__count { color: white; font-size: 24px; font-weight: 700; }
 .khach-hang-page__modal-section { display: grid; gap: 12px; }

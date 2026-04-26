@@ -168,8 +168,8 @@ function Register({ onBackToLogin }: RegisterProps) {
             Đăng ký
           </button>
 
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ color: '#8b92a7', fontSize: '14px' }}>Đã có tài khoản? </span>
+          <div className="dang-ky-page__footer">
+            <span className="dang-ky-page__footer-text">Đã có tài khoản? </span>
             <button
               type="button"
               onClick={onBackToLogin}

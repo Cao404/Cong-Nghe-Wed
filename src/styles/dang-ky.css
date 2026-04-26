@@ -94,3 +94,12 @@
   cursor: pointer;
   font-weight: 600;
 }
+
+.dang-ky-page__footer {
+  text-align: center;
+}
+
+.dang-ky-page__footer-text {
+  color: #8b92a7;
+  font-size: 14px;
+}
