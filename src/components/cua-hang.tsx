@@ -200,11 +200,11 @@ function Shop() {
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+        <div className="cua-hang-topbar__brand">
           <div style={{ fontSize: '28px', lineHeight: 1 }}>🛍️</div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#fff' }}>Shop.vn</h1>
-            <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.75)', fontSize: '14px' }}>
+<h1 className="cua-hang-topbar__title">Shop.vn</h1>
+<p className="cua-hang-topbar__subtitle">
               Tìm kiếm phong cách hoàn hảo cho mọi dịp
             </p>
           </div>
@@ -227,7 +227,7 @@ function Shop() {
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="cua-hang-topbar__actions">
           {viewMode === 'shop' && (
             <>
               <button
@@ -764,14 +764,14 @@ function Shop() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '28px 24px 42px' }}>
-        <section style={{ marginBottom: '34px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '26px' }}>
+      <div className="cua-hang-container">
+<section className="cua-hang-page__section">
+<div className="cua-hang-page__section-title">
             <h2 style={{ margin: '0 0 10px', fontSize: '44px', lineHeight: 1.1, letterSpacing: '-0.03em' }}>Danh Mục Sản Phẩm</h2>
             <p style={{ margin: 0, color: '#8b92a7', fontSize: '16px' }}>Tìm kiếm phong cách hoàn hảo cho mọi dịp</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
+<div className="cua-hang-category-grid">
             {categoryCards.map((category) => (
               <button
                 key={category.name}
@@ -791,23 +791,23 @@ function Shop() {
                   boxShadow: '0 18px 34px rgba(8, 15, 40, 0.28)',
                 }}
               >
-                <div style={{ fontSize: '54px', marginBottom: '16px' }}>{category.icon}</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px' }}>{category.name}</div>
+<div className="cua-hang-category-icon">{category.icon}</div>
+<div className="cua-hang-category-name">{category.name}</div>
                 <div style={{ fontSize: '15px', opacity: 0.9 }}>{category.count} sản phẩm</div>
               </button>
             ))}
           </div>
         </section>
 
-        <section style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: '16px', marginBottom: '18px', flexWrap: 'wrap' }}>
+<section className="cua-hang-page__section cua-hang-page__section--compact">
+<div className="cua-hang-header-row">
             <div>
               <h2 style={{ margin: '0 0 6px', fontSize: '30px' }}>Sản Phẩm Nổi Bật</h2>
               <div style={{ color: '#8b92a7' }}>Những sản phẩm được yêu thích nhất</div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
+<div className="cua-hang-filter-row">
             <FilterChip active={selectedCategory === 'all'} onClick={() => setSelectedCategory('all')}>
               🏠 Tất cả
             </FilterChip>
@@ -825,7 +825,7 @@ function Shop() {
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '22px' }}>
+<div className="cua-hang-product-grid">
             {currentProducts.length === 0 ? (
               <div
                 style={{
@@ -863,7 +863,7 @@ function Shop() {
                       textAlign: 'left',
                     }}
                   >
-                    <div style={{ position: 'relative' }}>
+<div className="cua-hang-product-card__image-wrap">
                       <img
                         loading="lazy"
                         src={product.image}
@@ -886,14 +886,14 @@ function Shop() {
                         {product.category}
                       </div>
                     </div>
-                    <div style={{ padding: '18px' }}>
-                      <h3 style={{ margin: '0 0 10px', fontSize: '18px', color: 'white' }}>{product.name}</h3>
-                      <div style={{ color: '#8fb7ff', fontWeight: 800, marginBottom: '8px', fontSize: '17px' }}>{moneyFormatter.format(product.price)}</div>
+<div className="cua-hang-product-card__body">
+<h3 className="cua-hang-product-card__title">{product.name}</h3>
+<div className="cua-hang-product-card__price">{moneyFormatter.format(product.price)}</div>
                       <div style={{ fontSize: '14px', color: '#8b92a7' }}>Còn {product.stock} sản phẩm</div>
                     </div>
                   </button>
 
-                  <div style={{ padding: '0 18px 18px' }}>
+<div className="cua-hang-product-card__footer">
                     <button
                       onClick={() => addToCart(product.id)}
                       style={{
@@ -916,7 +916,7 @@ function Shop() {
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '26px', flexWrap: 'wrap' }}>
+<div className="cua-hang-pagination">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
               <button
                 key={page}
@@ -974,7 +974,7 @@ function Shop() {
               alt={productDetail.name}
               style={{ width: '100%', height: '100%', minHeight: '420px', objectFit: 'cover', background: '#0d1117' }}
             />
-            <div style={{ padding: '24px', position: 'relative' }}>
+<div className="cua-hang-overlay__body">
               <button
                 type="button"
                 onClick={() => setSelectedProduct(null)}
@@ -995,12 +995,12 @@ function Shop() {
               >
                 ×
               </button>
-              <div style={{ fontSize: '13px', color: '#8b92a7', marginBottom: '8px' }}>{productDetail.category}</div>
-              <h2 id="product-detail-title" style={{ margin: '0 0 12px', fontSize: '30px', color: 'white' }}>
+<div className="cua-hang-overlay__category">{productDetail.category}</div>
+<h2 id="product-detail-title" className="cua-hang-overlay__title">
                 {productDetail.name}
               </h2>
-              <div style={{ fontSize: '28px', fontWeight: 800, color: '#8fb7ff', marginBottom: '16px' }}>{moneyFormatter.format(productDetail.price)}</div>
-              <div style={{ display: 'grid', gap: '10px', color: '#cbd5e1', marginBottom: '20px' }}>
+<div className="cua-hang-overlay__price">{moneyFormatter.format(productDetail.price)}</div>
+<div className="cua-hang-overlay__meta">
                 <div>
                   <strong>SKU:</strong> {productDetail.sku}
                 </div>
@@ -1011,10 +1011,10 @@ function Shop() {
                   <strong>Đã bán:</strong> {productDetail.sold}
                 </div>
               </div>
-              <p style={{ color: '#8b92a7', lineHeight: 1.7, marginBottom: '24px' }}>
+<p className="cua-hang-overlay__desc">
                 {productDetail.description || 'Sản phẩm chính hãng, mới 100%, phù hợp nhu cầu sử dụng hằng ngày.'}
               </p>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+<div className="cua-hang-overlay__actions">
                 <button
                   onClick={() => addToCart(productDetail.id)}
                   style={{
@@ -1056,7 +1056,7 @@ function Shop() {
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
     <label htmlFor={htmlFor} style={{ display: 'grid', gap: '6px' }}>
-      <span style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: 700 }}>{label}</span>
+<span className="cua-hang-field__label">{label}</span>
       {children}
     </label>
   )
