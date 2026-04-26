@@ -6,6 +6,7 @@ import '../styles/phan-quyen-nhat-ky.css'
 
 type UserRole = 'admin' | 'user'
 type TabKey = 'users' | 'logs'
+type ActivityStatus = 'success' | 'failed'
 
 interface ActivityLog {
   id: string
@@ -14,7 +15,7 @@ interface ActivityLog {
   target: string
   timestamp: string
   timestampAt: number
-  status: 'success' | 'failed'
+  status: ActivityStatus
 }
 
 interface EditableUser {
@@ -36,7 +37,7 @@ const formatDateTime = (value?: string | Date | null) => {
 }
 
 const getRoleText = (role: UserRole) => (role === 'admin' ? 'Quản trị viên' : 'Người dùng')
-const getRoleColor = (role: UserRole) => (role === 'admin' ? '#ef4444' : '#3b82f6')
+const getRoleTone = (role: UserRole) => (role === 'admin' ? 'danger' : 'primary')
 
 const getPermissionsByRole = (role: UserRole) =>
   role === 'admin'
@@ -67,14 +68,10 @@ function Rights() {
   const [orderLogs, setOrderLogs] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [editFormData, setEditFormData] = useState<{
-    name: string
-    phone: string
-    role: UserRole
-  }>({
+  const [editFormData, setEditFormData] = useState({
     name: '',
     phone: '',
-    role: 'user',
+    role: 'user' as UserRole,
   })
 
   const itemsPerPage = 8
@@ -88,17 +85,13 @@ function Rights() {
 
       try {
         const response = await api.getUsers()
-        if (!cancelled) {
-          setUsers(response.map(mapUser))
-        }
+        if (!cancelled) setUsers(response.map(mapUser))
       } catch (loadError) {
         if (!cancelled) {
           setError(loadError instanceof Error ? loadError.message : 'Không thể tải danh sách phân quyền')
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (!cancelled) setLoading(false)
       }
     }
 
@@ -199,10 +192,10 @@ function Rights() {
     const activePermissions = users.reduce((sum, user) => sum + user.permissions.length, 0)
 
     return [
-      { label: 'Tổng người dùng', value: userCount.toString(), icon: '👤', color: '#3b82f6' },
-      { label: 'Quản trị viên', value: adminCount.toString(), icon: '🔐', color: '#ef4444' },
-      { label: 'Đơn hàng liên quan', value: totalOrders.toString(), icon: '📦', color: '#10b981' },
-      { label: 'Quyền được gán', value: activePermissions.toString(), icon: '🛡️', color: '#f59e0b' },
+      { label: 'Tổng người dùng', value: userCount.toString(), icon: '👤', tone: 'blue' as const },
+      { label: 'Quản trị viên', value: adminCount.toString(), icon: '🔐', tone: 'red' as const },
+      { label: 'Đơn hàng liên quan', value: totalOrders.toString(), icon: '📦', tone: 'green' as const },
+      { label: 'Quyền được gán', value: activePermissions.toString(), icon: '🛡️', tone: 'amber' as const },
     ]
   }, [orders.length, users])
 
@@ -266,9 +259,7 @@ function Rights() {
         <div className="phan-quyen-page__stats">
           {stats.map((stat) => (
             <div key={stat.label} className="phan-quyen-page__stat">
-              <div className="phan-quyen-page__stat-icon" style={{ background: `${stat.color}20` }}>
-                {stat.icon}
-              </div>
+              <div className={`phan-quyen-page__stat-icon phan-quyen-page__stat-icon--${stat.tone}`}>{stat.icon}</div>
               <div>
                 <div className="phan-quyen-page__stat-value">{stat.value}</div>
                 <div className="phan-quyen-page__stat-label">{stat.label}</div>
@@ -281,13 +272,13 @@ function Rights() {
           <div className="phan-quyen-page__tabs">
             <button
               onClick={() => setActiveTab('users')}
-              style={tabButtonStyle(activeTab === 'users')}
+              className={`phan-quyen-page__tab ${activeTab === 'users' ? 'phan-quyen-page__tab--active' : ''}`}
             >
               Người dùng ({users.length})
             </button>
             <button
               onClick={() => setActiveTab('logs')}
-              style={tabButtonStyle(activeTab === 'logs')}
+              className={`phan-quyen-page__tab ${activeTab === 'logs' ? 'phan-quyen-page__tab--active' : ''}`}
             >
               Nhật ký hoạt động ({activityLogs.length})
             </button>
@@ -326,35 +317,32 @@ function Rights() {
                     </tr>
                   ) : (
                     currentUsers.map((user) => (
-                      <tr
-                        key={user.id}
-                        style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }}
-                        onMouseEnter={(event) => (event.currentTarget.style.background = '#0f1419')}
-                        onMouseLeave={(event) => (event.currentTarget.style.background = 'transparent')}
-                      >
-                        <td style={{ padding: '24px 28px' }}>
-                          <div style={{ color: 'white', fontSize: '16px', fontWeight: 500, marginBottom: '4px' }}>{user.name}</div>
-                          <div style={{ color: '#6b7280', fontSize: '13px' }}>{user.email}</div>
+                      <tr key={user.id} className="phan-quyen-page__row">
+                        <td className="phan-quyen-page__td">
+                          <div className="phan-quyen-page__user-name">{user.name}</div>
+                          <div className="phan-quyen-page__user-email">{user.email}</div>
                         </td>
-                        <td style={{ padding: '24px 28px' }}>
-                          <span style={roleBadgeStyle(user.role)}>{getRoleText(user.role)}</span>
+                        <td className="phan-quyen-page__td">
+                          <span className={`phan-quyen-page__role-badge phan-quyen-page__role-badge--${getRoleTone(user.role)}`}>
+                            {getRoleText(user.role)}
+                          </span>
                         </td>
-                        <td style={{ padding: '24px 28px' }}>
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <td className="phan-quyen-page__td">
+                          <div className="phan-quyen-page__permission-list">
                             {user.permissions.slice(0, 4).map((permission) => (
-                              <span key={permission} style={permissionBadgeStyle}>
+                              <span key={permission} className="phan-quyen-page__permission-badge">
                                 {permission}
                               </span>
                             ))}
-                            {user.permissions.length > 4 && <span style={permissionBadgeStyle}>+{user.permissions.length - 4}</span>}
+                            {user.permissions.length > 4 && (
+                              <span className="phan-quyen-page__permission-badge">+{user.permissions.length - 4}</span>
+                            )}
                           </div>
                         </td>
-                        <td style={{ padding: '24px 28px', textAlign: 'center', color: 'white', fontSize: '16px', fontWeight: 600 }}>
-                          {user.orders}
-                        </td>
-                        <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{user.createdAt}</td>
-                        <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                          <button onClick={() => handleEditClick(user.id)} style={primarySmallButton}>
+                        <td className="phan-quyen-page__td phan-quyen-page__td--center">{user.orders}</td>
+                        <td className="phan-quyen-page__td phan-quyen-page__td--muted">{user.createdAt}</td>
+                        <td className="phan-quyen-page__td phan-quyen-page__actions">
+                          <button onClick={() => handleEditClick(user.id)} className="phan-quyen-page__button phan-quyen-page__button--primary">
                             Chỉnh sửa
                           </button>
                         </td>
@@ -365,19 +353,27 @@ function Rights() {
               </table>
 
               {totalPages > 1 && (
-                <div style={paginationStyle}>
-                  <button onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1} style={pagerButtonStyle(currentPage === 1)}>
+                <div className="phan-quyen-page__pagination">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className={`phan-quyen-page__pager ${currentPage === 1 ? 'phan-quyen-page__pager--disabled' : ''}`}
+                  >
                     ← Trước
                   </button>
                   {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                    <button key={page} onClick={() => setCurrentPage(page)} style={pageNumberButtonStyle(currentPage === page)}>
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`phan-quyen-page__page ${currentPage === page ? 'phan-quyen-page__page--active' : ''}`}
+                    >
                       {page}
                     </button>
                   ))}
                   <button
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    style={pagerButtonStyle(currentPage === totalPages)}
+                    className={`phan-quyen-page__pager ${currentPage === totalPages ? 'phan-quyen-page__pager--disabled' : ''}`}
                   >
                     Sau →
                   </button>
@@ -388,37 +384,30 @@ function Rights() {
 
           {activeTab === 'logs' && (
             <>
-              <div style={{ padding: '16px 24px', borderBottom: '1px solid #2a2f3e', fontSize: '12px', color: '#6b7280' }}>
-                Hiển thị {currentLogs.length === 0 ? 0 : (currentLogPage - 1) * itemsPerPage + 1}-{Math.min(
-                  currentLogPage * itemsPerPage,
-                  activityLogs.length,
-                )} trong {activityLogs.length} kết quả
+              <div className="phan-quyen-page__summary">
+                Hiển thị {currentLogs.length === 0 ? 0 : (currentLogPage - 1) * itemsPerPage + 1}-
+                {Math.min(currentLogPage * itemsPerPage, activityLogs.length)} trong {activityLogs.length} kết quả
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table className="phan-quyen-page__table">
                 <thead>
-                  <tr style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
-                    <th style={thCell}>Người dùng</th>
-                    <th style={thCell}>Hành động</th>
-                    <th style={thCell}>Đối tượng</th>
-                    <th style={thCell}>Thời gian</th>
-                    <th style={{ ...thCell, textAlign: 'center' }}>Trạng thái</th>
+                  <tr className="phan-quyen-page__thead">
+                    <th className="phan-quyen-page__th">Người dùng</th>
+                    <th className="phan-quyen-page__th">Hành động</th>
+                    <th className="phan-quyen-page__th">Đối tượng</th>
+                    <th className="phan-quyen-page__th">Thời gian</th>
+                    <th className="phan-quyen-page__th phan-quyen-page__th--center">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentLogs.map((log) => (
-                    <tr
-                      key={log.id}
-                      style={{ borderBottom: '1px solid #2a2f3e', transition: 'background 0.2s' }}
-                      onMouseEnter={(event) => (event.currentTarget.style.background = '#0f1419')}
-                      onMouseLeave={(event) => (event.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '24px 28px', color: 'white', fontSize: '15px' }}>{log.user}</td>
-                      <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{log.action}</td>
-                      <td style={{ padding: '24px 28px', color: '#3b82f6', fontSize: '15px', fontWeight: 500 }}>{log.target}</td>
-                      <td style={{ padding: '24px 28px', color: '#8b92a7', fontSize: '15px' }}>{log.timestamp}</td>
-                      <td style={{ padding: '24px 28px', textAlign: 'center' }}>
-                        <span style={statusBadgeStyle(log.status)}>
+                    <tr key={log.id} className="phan-quyen-page__row">
+                      <td className="phan-quyen-page__td phan-quyen-page__td--muted">{log.user}</td>
+                      <td className="phan-quyen-page__td phan-quyen-page__td--muted">{log.action}</td>
+                      <td className="phan-quyen-page__td phan-quyen-page__target">{log.target}</td>
+                      <td className="phan-quyen-page__td phan-quyen-page__td--muted">{log.timestamp}</td>
+                      <td className="phan-quyen-page__td phan-quyen-page__td--center">
+                        <span className={`phan-quyen-page__status phan-quyen-page__status--${log.status}`}>
                           {log.status === 'success' ? 'Thành công' : 'Thất bại'}
                         </span>
                       </td>
@@ -428,11 +417,11 @@ function Rights() {
               </table>
 
               {totalLogPages > 1 && (
-                <div style={paginationStyle}>
+                <div className="phan-quyen-page__pagination">
                   <button
                     onClick={() => setCurrentLogPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentLogPage === 1}
-                    style={pagerButtonStyle(currentLogPage === 1)}
+                    className={`phan-quyen-page__pager ${currentLogPage === 1 ? 'phan-quyen-page__pager--disabled' : ''}`}
                   >
                     ← Trước
                   </button>
@@ -440,7 +429,7 @@ function Rights() {
                     <button
                       key={page}
                       onClick={() => setCurrentLogPage(page)}
-                      style={pageNumberButtonStyle(currentLogPage === page)}
+                      className={`phan-quyen-page__page ${currentLogPage === page ? 'phan-quyen-page__page--active' : ''}`}
                     >
                       {page}
                     </button>
@@ -448,7 +437,7 @@ function Rights() {
                   <button
                     onClick={() => setCurrentLogPage((prev) => Math.min(totalLogPages, prev + 1))}
                     disabled={currentLogPage === totalLogPages}
-                    style={pagerButtonStyle(currentLogPage === totalLogPages)}
+                    className={`phan-quyen-page__pager ${currentLogPage === totalLogPages ? 'phan-quyen-page__pager--disabled' : ''}`}
                   >
                     Sau →
                   </button>
@@ -460,85 +449,68 @@ function Rights() {
       </div>
 
       {showEditModal && selectedUser && (
-        <div
-          style={overlayStyle}
-          onClick={() => setShowEditModal(false)}
-        >
-          <div
-            style={modalWrapStyle}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div
-              style={{
-                padding: '24px',
-                borderBottom: '1px solid #2a2f3e',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: '20px', color: 'white' }}>Chỉnh sửa người dùng</h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                style={closeButtonStyle}
-              >
+        <div className="phan-quyen-page__modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="phan-quyen-page__modal" onClick={(event) => event.stopPropagation()}>
+            <div className="phan-quyen-page__modal-header">
+              <h2 className="phan-quyen-page__modal-title">Chỉnh sửa người dùng</h2>
+              <button onClick={() => setShowEditModal(false)} className="phan-quyen-page__modal-close">
                 ×
               </button>
             </div>
 
-            <div style={{ padding: '24px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ color: 'white', fontSize: '16px', fontWeight: 500, marginBottom: '8px' }}>{selectedUser.name}</div>
-                <div style={{ color: '#6b7280', fontSize: '14px' }}>{selectedUser.email}</div>
+            <div className="phan-quyen-page__modal-body">
+              <div className="phan-quyen-page__user-card">
+                <div className="phan-quyen-page__user-card-name">{selectedUser.name}</div>
+                <div className="phan-quyen-page__user-card-email">{selectedUser.email}</div>
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={formLabelStyle}>Tên hiển thị</label>
+              <div className="phan-quyen-page__form-group">
+                <label className="phan-quyen-page__form-label">Tên hiển thị</label>
                 <input
                   value={editFormData.name}
                   onChange={(event) => setEditFormData((current) => ({ ...current, name: event.target.value }))}
-                  style={formInputStyle}
+                  className="phan-quyen-page__input"
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={formLabelStyle}>Số điện thoại</label>
+              <div className="phan-quyen-page__form-group">
+                <label className="phan-quyen-page__form-label">Số điện thoại</label>
                 <input
                   value={editFormData.phone}
                   onChange={(event) => setEditFormData((current) => ({ ...current, phone: event.target.value }))}
                   placeholder="Nhập số điện thoại"
-                  style={formInputStyle}
+                  className="phan-quyen-page__input"
                 />
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={formLabelStyle}>Vai trò</label>
+              <div className="phan-quyen-page__form-group">
+                <label className="phan-quyen-page__form-label">Vai trò</label>
                 <select
                   value={editFormData.role}
                   onChange={(event) => setEditFormData((current) => ({ ...current, role: event.target.value as UserRole }))}
-                  style={formInputStyle}
+                  className="phan-quyen-page__input"
                 >
                   <option value="user">Người dùng</option>
                   <option value="admin">Quản trị viên</option>
                 </select>
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={formLabelStyle}>Quyền suy ra từ vai trò</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+              <div className="phan-quyen-page__form-group phan-quyen-page__form-group--last">
+                <label className="phan-quyen-page__form-label">Quyền suy ra từ vai trò</label>
+                <div className="phan-quyen-page__form-grid">
                   {getPermissionsByRole(editFormData.role).map((permission) => (
-                    <div key={permission} style={permissionPreviewStyle}>
+                    <div key={permission} className="phan-quyen-page__permission-preview">
                       {permission}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowEditModal(false)} style={secondaryButtonStyle}>
+              <div className="phan-quyen-page__form-actions">
+                <button onClick={() => setShowEditModal(false)} className="phan-quyen-page__button phan-quyen-page__button--secondary">
                   Hủy
                 </button>
-                <button onClick={() => void handleUpdateUser()} style={primaryButtonStyle}>
+                <button onClick={() => void handleUpdateUser()} className="phan-quyen-page__button phan-quyen-page__button--primary phan-quyen-page__button--large">
                   Lưu thay đổi
                 </button>
               </div>
@@ -571,179 +543,6 @@ function mapOrderHistoryEntry(entry: ApiOrderHistoryEntry, orderCode: string): A
     timestampAt: Number.isNaN(timestampAt) ? 0 : timestampAt,
     status: entry.action === 'rejected' || entry.action === 'cancelled' ? 'failed' : 'success',
   }
-}
-
-function tabButtonStyle(active: boolean): React.CSSProperties {
-  return {
-    padding: '18px 28px',
-    background: active ? '#0f1419' : 'transparent',
-    color: active ? '#3b82f6' : '#8b92a7',
-    border: 'none',
-    borderBottom: active ? '2px solid #3b82f6' : '2px solid transparent',
-    cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: active ? 600 : 400,
-    whiteSpace: 'nowrap',
-  }
-}
-
-function statusBadgeStyle(status: 'success' | 'failed'): React.CSSProperties {
-  return {
-    padding: '6px 12px',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 600,
-    background: status === 'success' ? '#10b98120' : '#ef444420',
-    color: status === 'success' ? '#10b981' : '#ef4444',
-  }
-}
-
-const thCell: React.CSSProperties = {
-  padding: '20px 28px',
-  textAlign: 'left',
-  color: '#8b92a7',
-  fontSize: '12px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '1px',
-}
-
-const roleBadgeStyle = (role: UserRole): React.CSSProperties => ({
-  padding: '6px 12px',
-  borderRadius: '6px',
-  fontSize: '13px',
-  fontWeight: 600,
-  background: `${getRoleColor(role)}20`,
-  color: getRoleColor(role),
-})
-
-const permissionBadgeStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  borderRadius: '4px',
-  fontSize: '12px',
-  background: '#374151',
-  color: '#9ca3af',
-}
-
-const primarySmallButton: React.CSSProperties = {
-  padding: '8px 16px',
-  background: '#3b82f6',
-  color: 'white',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '13px',
-  fontWeight: 500,
-}
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...primarySmallButton,
-  padding: '12px 24px',
-  fontSize: '15px',
-}
-
-const secondaryButtonStyle: React.CSSProperties = {
-  padding: '12px 24px',
-  background: '#2a2f3e',
-  color: 'white',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '15px',
-  fontWeight: 500,
-}
-
-const paginationStyle: React.CSSProperties = {
-  padding: '24px',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  gap: '8px',
-  borderTop: '1px solid #2a2f3e',
-  flexWrap: 'wrap',
-}
-
-const pagerButtonStyle = (disabled: boolean): React.CSSProperties => ({
-  padding: '8px 16px',
-  background: disabled ? '#1a1f2e' : '#2a2f3e',
-  color: disabled ? '#6b7280' : 'white',
-  border: '1px solid #2a2f3e',
-  borderRadius: '6px',
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  fontSize: '14px',
-})
-
-const pageNumberButtonStyle = (active: boolean): React.CSSProperties => ({
-  padding: '8px 12px',
-  background: active ? '#f97316' : '#2a2f3e',
-  color: 'white',
-  border: '1px solid #2a2f3e',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '14px',
-  minWidth: '40px',
-})
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.7)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '20px',
-}
-
-const modalWrapStyle: React.CSSProperties = {
-  background: '#1a1f2e',
-  borderRadius: '12px',
-  width: '100%',
-  maxWidth: '620px',
-  maxHeight: '90vh',
-  overflow: 'auto',
-  border: '1px solid #2a2f3e',
-}
-
-const closeButtonStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: '#6b7280',
-  fontSize: '24px',
-  cursor: 'pointer',
-  padding: '0',
-  width: '32px',
-  height: '32px',
-}
-
-const formLabelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: '8px',
-  color: '#8b92a7',
-  fontSize: '13px',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-}
-
-const formInputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '12px',
-  background: '#0f1419',
-  border: '1px solid #2a2f3e',
-  borderRadius: '6px',
-  color: 'white',
-  fontSize: '15px',
-}
-
-const permissionPreviewStyle: React.CSSProperties = {
-  padding: '12px',
-  borderRadius: '8px',
-  background: '#0f1419',
-  border: '1px solid #2a2f3e',
-  color: '#8b92a7',
-  fontSize: '14px',
-  textAlign: 'center',
 }
 
 export default Rights

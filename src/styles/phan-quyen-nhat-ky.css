@@ -33,6 +33,10 @@
   justify-content: center;
   font-size: 32px;
 }
+.phan-quyen-page__stat-icon--blue { background: #3b82f620; }
+.phan-quyen-page__stat-icon--red { background: #ef444420; }
+.phan-quyen-page__stat-icon--green { background: #10b98120; }
+.phan-quyen-page__stat-icon--amber { background: #f59e0b20; }
 
 .phan-quyen-page__stat-value {
   font-size: 32px;
@@ -62,9 +66,17 @@
 .phan-quyen-page__tab {
   padding: 18px 28px;
   border: none;
+  background: transparent;
+  color: #8b92a7;
   cursor: pointer;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.phan-quyen-page__tab--active {
+  background: #0f1419;
+  color: #3b82f6;
+  border-bottom: 2px solid #3b82f6;
 }
 
 .phan-quyen-page__summary {
@@ -129,6 +141,12 @@
   font-size: 15px;
 }
 
+.phan-quyen-page__target {
+  color: #3b82f6;
+  font-size: 15px;
+  font-weight: 500;
+}
+
 .phan-quyen-page__user-name {
   color: white;
   font-size: 16px;
@@ -145,6 +163,14 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.phan-quyen-page__permission-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #374151;
+  color: #9ca3af;
 }
 
 .phan-quyen-page__actions {
@@ -198,6 +224,17 @@
   color: white;
 }
 
+.phan-quyen-page__modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+}
+
 .phan-quyen-page__modal-body {
   padding: 24px;
 }
@@ -233,14 +270,123 @@
   margin-bottom: 8px;
 }
 
+.phan-quyen-page__input {
+  width: 100%;
+  padding: 12px;
+  background: #0f1419;
+  border: 1px solid #2a2f3e;
+  border-radius: 6px;
+  color: white;
+  font-size: 15px;
+}
+
 .phan-quyen-page__form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
 }
 
+.phan-quyen-page__permission-preview {
+  padding: 12px;
+  border-radius: 8px;
+  background: #0f1419;
+  border: 1px solid #2a2f3e;
+  color: #8b92a7;
+  font-size: 14px;
+  text-align: center;
+}
+
 .phan-quyen-page__form-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+.phan-quyen-page__button {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.phan-quyen-page__button--primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.phan-quyen-page__button--secondary {
+  background: #2a2f3e;
+  color: white;
+}
+
+.phan-quyen-page__button--large {
+  padding: 12px 24px;
+  font-size: 15px;
+}
+
+.phan-quyen-page__pager {
+  padding: 8px 16px;
+  background: #2a2f3e;
+  color: white;
+  border: 1px solid #2a2f3e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.phan-quyen-page__pager--disabled {
+  background: #1a1f2e;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.phan-quyen-page__page {
+  padding: 8px 12px;
+  background: #2a2f3e;
+  color: white;
+  border: 1px solid #2a2f3e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 40px;
+}
+
+.phan-quyen-page__page--active {
+  background: #f97316;
+}
+
+.phan-quyen-page__role-badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.phan-quyen-page__role-badge--danger {
+  background: #ef444420;
+  color: #ef4444;
+}
+
+.phan-quyen-page__role-badge--primary {
+  background: #3b82f620;
+  color: #3b82f6;
+}
+
+.phan-quyen-page__status {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.phan-quyen-page__status--success {
+  background: #10b98120;
+  color: #10b981;
+}
+
+.phan-quyen-page__status--failed {
+  background: #ef444420;
+  color: #ef4444;
 }
