@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import Header from './Header'
 import '../styles/khuyen-mai.css'
 import { api, type ApiVoucher } from '../api'
@@ -79,14 +79,15 @@ function Promo() {
   const selectedVoucher = selectedId ? vouchers.find((voucher) => voucher.id === selectedId) ?? null : null
 
   const stats = [
-    { label: 'Tổng voucher', value: vouchers.length, color: '#3b82f6' },
-    { label: 'Đang hoạt động', value: vouchers.filter((voucher) => voucher.status === 'active').length, color: '#10b981' },
-    { label: 'Tạm dừng', value: vouchers.filter((voucher) => voucher.status === 'inactive').length, color: '#6b7280' },
-    { label: 'Hết hạn', value: vouchers.filter((voucher) => voucher.status === 'expired').length, color: '#ef4444' },
+    { label: 'Tổng voucher', value: vouchers.length, tone: 'blue' as const },
+    { label: 'Đang hoạt động', value: vouchers.filter((voucher) => voucher.status === 'active').length, tone: 'green' as const },
+    { label: 'Tạm dừng', value: vouchers.filter((voucher) => voucher.status === 'inactive').length, tone: 'gray' as const },
+    { label: 'Hết hạn', value: vouchers.filter((voucher) => voucher.status === 'expired').length, tone: 'red' as const },
   ]
 
   const openCreate = () => {
     setEditingId(null)
+    setSelectedId(null)
     setForm(emptyForm)
     setShowForm(true)
   }
@@ -177,71 +178,77 @@ function Promo() {
       <div className="khuyen-mai-page__content">
         <div className="khuyen-mai-page__stats">
           {stats.map((stat) => (
-            <div key={stat.label} className="khuyen-mai-page__stat" style={statCardStyle}>
-              <div style={{ color: stat.color, fontSize: '13px', fontWeight: 700 }}>{stat.label}</div>
-              <div style={{ fontSize: '30px', fontWeight: 800, marginTop: '8px' }}>{stat.value}</div>
+            <div key={stat.label} className={`khuyen-mai-page__stat khuyen-mai-page__stat--${stat.tone}`}>
+              <div className="khuyen-mai-page__stat-label">{stat.label}</div>
+              <div className="khuyen-mai-page__stat-value">{stat.value}</div>
             </div>
           ))}
         </div>
 
-        <div className="khuyen-mai-page__panel" style={panelStyle}>
-          <div className="khuyen-mai-page__toolbar" style={toolbarStyle}>
-            <div style={{ color: '#8b92a7' }}>{loading ? 'Đang tải...' : error || `Hiển thị ${filtered.length} voucher`}</div>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
+        <div className="khuyen-mai-page__panel">
+          <div className="khuyen-mai-page__toolbar">
+            <div className="khuyen-mai-page__toolbar-text">{loading ? 'Đang tải...' : error || `Hiển thị ${filtered.length} voucher`}</div>
+            <div className="khuyen-mai-page__toolbar-actions">
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="khuyen-mai-page__select">
                 <option value="all">Tất cả trạng thái</option>
                 <option value="active">Hoạt động</option>
                 <option value="inactive">Tạm dừng</option>
                 <option value="expired">Hết hạn</option>
               </select>
-              <button onClick={openCreate} style={primaryButtonStyle}>+ Tạo Voucher</button>
+              <button onClick={openCreate} className="khuyen-mai-page__button khuyen-mai-page__button--primary">
+                + Tạo Voucher
+              </button>
             </div>
           </div>
 
-          <table className="khuyen-mai-page__table" style={tableStyle}>
+          <table className="khuyen-mai-page__table">
             <thead>
-              <tr style={headRowStyle}>
-                <th style={thStyle}>Mã</th>
-                <th style={thStyle}>Tên</th>
-                <th style={thStyle}>Giảm giá</th>
-                <th style={thStyle}>Số lượng</th>
-                <th style={thStyle}>Thời gian</th>
-                <th style={thStyle}>Trạng thái</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Thao tác</th>
+              <tr className="khuyen-mai-page__table-head">
+                <th className="khuyen-mai-page__th">Mã</th>
+                <th className="khuyen-mai-page__th">Tên</th>
+                <th className="khuyen-mai-page__th">Giảm giá</th>
+                <th className="khuyen-mai-page__th">Số lượng</th>
+                <th className="khuyen-mai-page__th">Thời gian</th>
+                <th className="khuyen-mai-page__th">Trạng thái</th>
+                <th className="khuyen-mai-page__th khuyen-mai-page__th--right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {!loading && current.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={emptyCellStyle}>Không có voucher nào</td>
+                  <td colSpan={7} className="khuyen-mai-page__empty-cell">
+                    Không có voucher nào
+                  </td>
                 </tr>
               ) : (
                 current.map((voucher) => (
-                  <tr key={voucher.id} style={rowStyle}>
-                    <td style={tdStyle}><strong style={{ color: '#f97316' }}>{voucher.code}</strong></td>
-                    <td style={tdStyle}>
-                      <div style={{ fontWeight: 700 }}>{voucher.name}</div>
-                      <div style={mutedTextStyle}>Đơn tối thiểu: {voucher.minOrder.toLocaleString('vi-VN')}đ</div>
+                  <tr key={voucher.id} className="khuyen-mai-page__row">
+                    <td className="khuyen-mai-page__td"><strong className="khuyen-mai-page__code">{voucher.code}</strong></td>
+                    <td className="khuyen-mai-page__td">
+                      <div className="khuyen-mai-page__name">{voucher.name}</div>
+                      <div className="khuyen-mai-page__muted">Đơn tối thiểu: {voucher.minOrder.toLocaleString('vi-VN')}đ</div>
                     </td>
-                    <td style={tdStyle}>
+                    <td className="khuyen-mai-page__td">
                       {voucher.type === 'fixed' ? `${voucher.value.toLocaleString('vi-VN')}đ` : `${voucher.value}%`}
-                      <div style={mutedTextStyle}>Tối đa {voucher.maxDiscount.toLocaleString('vi-VN')}đ</div>
+                      <div className="khuyen-mai-page__muted">Tối đa {voucher.maxDiscount.toLocaleString('vi-VN')}đ</div>
                     </td>
-                    <td style={tdStyle}>{voucher.used}/{voucher.quantity}</td>
-                    <td style={tdStyle}>
+                    <td className="khuyen-mai-page__td">{voucher.used}/{voucher.quantity}</td>
+                    <td className="khuyen-mai-page__td">
                       <div>{formatDate(voucher.startDate)}</div>
-                      <div style={mutedTextStyle}>{formatDate(voucher.endDate)}</div>
+                      <div className="khuyen-mai-page__muted">{formatDate(voucher.endDate)}</div>
                     </td>
-                    <td style={tdStyle}>
-                      <span style={badgeStyle(voucher.status)}>{voucher.status}</span>
+                    <td className="khuyen-mai-page__td">
+                      <span className={`khuyen-mai-page__badge khuyen-mai-page__badge--${voucher.status}`}>
+                        {voucher.status}
+                      </span>
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
-                        <button onClick={() => openEdit(voucher)} style={actionButtonStyle('#3b82f6')}>Sửa</button>
-                        <button onClick={() => toggleStatus(voucher)} style={actionButtonStyle('#10b981')}>
+                    <td className="khuyen-mai-page__td khuyen-mai-page__td--right">
+                      <div className="khuyen-mai-page__actions">
+                        <button onClick={() => openEdit(voucher)} className="khuyen-mai-page__button khuyen-mai-page__button--blue">Sửa</button>
+                        <button onClick={() => toggleStatus(voucher)} className="khuyen-mai-page__button khuyen-mai-page__button--green">
                           {voucher.status === 'active' ? 'Tắt' : 'Bật'}
                         </button>
-                        <button onClick={() => remove(voucher.id)} style={actionButtonStyle('#ef4444')}>Xóa</button>
+                        <button onClick={() => remove(voucher.id)} className="khuyen-mai-page__button khuyen-mai-page__button--red">Xóa</button>
                       </div>
                     </td>
                   </tr>
@@ -251,14 +258,22 @@ function Promo() {
           </table>
 
           {totalPages > 1 && (
-            <div style={paginationStyle}>
-              <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} style={pageButtonStyle(currentPage === 1)}>←</button>
+            <div className="khuyen-mai-page__pagination">
+              <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="khuyen-mai-page__page">
+                ←
+              </button>
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                <button key={page} onClick={() => setCurrentPage(page)} style={{ ...pageButtonStyle(false), background: currentPage === page ? '#f97316' : '#2a2f3e' }}>
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`khuyen-mai-page__page ${currentPage === page ? 'khuyen-mai-page__page--active' : ''}`}
+                >
                   {page}
                 </button>
               ))}
-              <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={pageButtonStyle(currentPage === totalPages)}>→</button>
+              <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="khuyen-mai-page__page">
+                →
+              </button>
             </div>
           )}
         </div>
@@ -272,7 +287,7 @@ function Promo() {
 
       {selectedVoucher && !showForm && (
         <Modal title="Chi tiết voucher" onClose={() => setSelectedId(null)} hideSubmit>
-          <div style={{ display: 'grid', gap: '10px' }}>
+          <div className="khuyen-mai-page__detail">
             <div><strong>Mã:</strong> {selectedVoucher.code}</div>
             <div><strong>Tên:</strong> {selectedVoucher.name}</div>
             <div><strong>Loại:</strong> {selectedVoucher.type}</div>
@@ -291,26 +306,26 @@ function Promo() {
 
 function FormFields({ form, setForm }: { form: VoucherForm; setForm: Dispatch<SetStateAction<VoucherForm>> }) {
   return (
-    <div style={{ display: 'grid', gap: '14px' }}>
-      <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="Mã voucher" style={inputStyle} />
-      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên chương trình" style={inputStyle} />
-      <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as VoucherForm['type'] })} style={inputStyle}>
+    <div className="khuyen-mai-page__form">
+      <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="Mã voucher" className="khuyen-mai-page__input" />
+      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên chương trình" className="khuyen-mai-page__input" />
+      <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as VoucherForm['type'] })} className="khuyen-mai-page__input">
         <option value="percentage">Phần trăm</option>
         <option value="fixed">Cố định</option>
       </select>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <input value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="Giá trị" type="number" style={inputStyle} />
-        <input value={form.maxDiscount} onChange={(e) => setForm({ ...form, maxDiscount: e.target.value })} placeholder="Giảm tối đa" type="number" style={inputStyle} />
+      <div className="khuyen-mai-page__form-grid">
+        <input value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder="Giá trị" type="number" className="khuyen-mai-page__input" />
+        <input value={form.maxDiscount} onChange={(e) => setForm({ ...form, maxDiscount: e.target.value })} placeholder="Giảm tối đa" type="number" className="khuyen-mai-page__input" />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <input value={form.minOrder} onChange={(e) => setForm({ ...form, minOrder: e.target.value })} placeholder="Đơn tối thiểu" type="number" style={inputStyle} />
-        <input value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Số lượng" type="number" style={inputStyle} />
+      <div className="khuyen-mai-page__form-grid">
+        <input value={form.minOrder} onChange={(e) => setForm({ ...form, minOrder: e.target.value })} placeholder="Đơn tối thiểu" type="number" className="khuyen-mai-page__input" />
+        <input value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Số lượng" type="number" className="khuyen-mai-page__input" />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <input value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} type="date" style={inputStyle} />
-        <input value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} type="date" style={inputStyle} />
+      <div className="khuyen-mai-page__form-grid">
+        <input value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} type="date" className="khuyen-mai-page__input" />
+        <input value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} type="date" className="khuyen-mai-page__input" />
       </div>
-      <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as VoucherForm['status'] })} style={inputStyle}>
+      <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as VoucherForm['status'] })} className="khuyen-mai-page__input">
         <option value="active">active</option>
         <option value="inactive">inactive</option>
         <option value="expired">expired</option>
@@ -319,52 +334,36 @@ function FormFields({ form, setForm }: { form: VoucherForm; setForm: Dispatch<Se
   )
 }
 
-function Modal({ title, onClose, onSubmit, hideSubmit = false, children }: { title: string; onClose: () => void; onSubmit?: () => void; hideSubmit?: boolean; children: ReactNode }) {
+function Modal({
+  title,
+  onClose,
+  onSubmit,
+  hideSubmit = false,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  onSubmit?: () => void
+  hideSubmit?: boolean
+  children: ReactNode
+}) {
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={modalHeaderStyle}>
-          <h2 style={{ margin: 0 }}>{title}</h2>
-          <button onClick={onClose} style={closeButtonStyle}>×</button>
+    <div className="khuyen-mai-page__overlay" onClick={onClose}>
+      <div className="khuyen-mai-page__modal" onClick={(e) => e.stopPropagation()}>
+        <div className="khuyen-mai-page__modal-header">
+          <h2 className="khuyen-mai-page__modal-title">{title}</h2>
+          <button onClick={onClose} className="khuyen-mai-page__close">×</button>
         </div>
         {children}
         {!hideSubmit && onSubmit && (
-          <div style={modalActionsStyle}>
-            <button onClick={onClose} style={secondaryButtonStyle}>Hủy</button>
-            <button onClick={onSubmit} style={primaryButtonStyle}>Lưu</button>
+          <div className="khuyen-mai-page__modal-actions">
+            <button onClick={onClose} className="khuyen-mai-page__button khuyen-mai-page__button--secondary">Hủy</button>
+            <button onClick={onSubmit} className="khuyen-mai-page__button khuyen-mai-page__button--primary">Lưu</button>
           </div>
         )}
       </div>
     </div>
   )
-}
-
-const panelStyle: CSSProperties = { background: '#1a1f2e', borderRadius: '12px', border: '1px solid #2a2f3e', overflow: 'hidden' }
-const statCardStyle: CSSProperties = { background: '#1a1f2e', padding: '24px', borderRadius: '12px', border: '1px solid #2a2f3e' }
-const toolbarStyle: CSSProperties = { padding: '20px 24px', borderBottom: '1px solid #2a2f3e', display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }
-const tableStyle: CSSProperties = { width: '100%', borderCollapse: 'collapse' }
-const headRowStyle: CSSProperties = { background: '#0f1419', borderBottom: '1px solid #2a2f3e' }
-const thStyle: CSSProperties = { padding: '16px 18px', textAlign: 'left', color: '#8b92a7', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }
-const tdStyle: CSSProperties = { padding: '16px 18px', color: '#cbd5e1', verticalAlign: 'middle' }
-const rowStyle: CSSProperties = { borderBottom: '1px solid #2a2f3e' }
-const emptyCellStyle: CSSProperties = { padding: '40px 28px', textAlign: 'center', color: '#8b92a7' }
-const mutedTextStyle: CSSProperties = { color: '#6b7280', fontSize: '13px', marginTop: '4px' }
-const selectStyle: CSSProperties = { padding: '8px 12px', background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '6px', color: 'white', fontSize: '13px', cursor: 'pointer' }
-const inputStyle: CSSProperties = { width: '100%', padding: '12px', background: '#0f1419', border: '1px solid #2a2f3e', borderRadius: '8px', color: 'white', fontSize: '15px' }
-const primaryButtonStyle: CSSProperties = { padding: '10px 16px', borderRadius: '10px', border: 'none', background: '#f97316', color: 'white', cursor: 'pointer', fontWeight: 700 }
-const secondaryButtonStyle: CSSProperties = { padding: '10px 16px', borderRadius: '10px', border: '1px solid #2a2f3e', background: '#0f1419', color: 'white', cursor: 'pointer', fontWeight: 700 }
-const actionButtonStyle = (color: string): CSSProperties => ({ padding: '8px 12px', borderRadius: '8px', border: 'none', background: color, color: 'white', cursor: 'pointer', fontWeight: 700 })
-const paginationStyle: CSSProperties = { padding: '20px 24px', borderTop: '1px solid #2a2f3e', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }
-const pageButtonStyle = (disabled: boolean): CSSProperties => ({ padding: '8px 12px', background: disabled ? '#1a1f2e' : '#2a2f3e', color: disabled ? '#6b7280' : 'white', border: '1px solid #2a2f3e', borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '14px' })
-const overlayStyle: CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }
-const modalStyle: CSSProperties = { background: '#1a1f2e', borderRadius: '16px', width: 'min(100%, 640px)', border: '1px solid #2a2f3e', padding: '24px' }
-const modalHeaderStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '18px' }
-const modalActionsStyle: CSSProperties = { display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }
-const closeButtonStyle: CSSProperties = { width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #2a2f3e', background: '#0f1419', color: 'white', cursor: 'pointer', fontSize: '20px' }
-
-function badgeStyle(status: string): CSSProperties {
-  const color = status === 'active' ? '#10b981' : status === 'expired' ? '#ef4444' : '#6b7280'
-  return { padding: '6px 12px', borderRadius: '999px', background: `${color}20`, color, fontWeight: 700, fontSize: '13px' }
 }
 
 function formatDate(value: string) {
