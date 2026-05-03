@@ -603,3 +603,153 @@
   background: linear-gradient(135deg, #7a73ea 0%, #7b4eb6 100%);
   box-shadow: 0 10px 20px rgba(122, 115, 234, 0.18);
 }
+.cua-hang-topbar__button--back {
+  min-width: 110px;
+}
+
+.cua-hang-container--checkout {
+  max-width: 1240px;
+}
+
+.cua-hang-checkout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+  gap: 20px;
+}
+
+.cua-hang-card--checkout-summary {
+  padding: 24px;
+  height: fit-content;
+  position: sticky;
+  top: 98px;
+}
+
+.cua-hang-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.cua-hang-input--textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.cua-hang-empty--orders {
+  text-align: center;
+  padding: 32px;
+  color: #8b92a7;
+}
+
+.cua-hang-order-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.cua-hang-order-code {
+  font-weight: 800;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.cua-hang-order-meta {
+  color: #8b92a7;
+  font-size: 14px;
+}
+
+.cua-hang-order-total-wrap {
+  text-align: right;
+}
+
+.cua-hang-order-total {
+  font-weight: 800;
+  color: white;
+}
+
+.cua-hang-order-status {
+  color: #8b92a7;
+  font-size: 14px;
+}
+
+.cua-hang-order-actions {
+  margin-top: 16px;
+}
+
+.cua-hang-order-cancel {
+  padding: 10px 14px;
+  background: #2a1114;
+  color: #fca5a5;
+  border: 1px solid #7f1d1d;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.cua-hang-submit--full {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.cua-hang-category-card--laptop {
+  background: linear-gradient(135deg, #7666ff 0%, #8f6be8 100%);
+}
+
+.cua-hang-category-card--phone {
+  background: linear-gradient(135deg, #ff8bd1 0%, #ff5b8c 100%);
+}
+
+.cua-hang-category-card--tablet {
+  background: linear-gradient(135deg, #37b4ff 0%, #1ccfff 100%);
+}
+
+.cua-hang-category-card--accessory {
+  background: linear-gradient(135deg, #3fe37a 0%, #32e9c0 100%);
+}
+
+@media (max-width: 900px) {
+  .cua-hang-checkout-grid,
+  .cua-hang-overlay__modal {
+    grid-template-columns: 1fr;
+  }
+
+  .cua-hang-card--checkout-summary {
+    position: static;
+    top: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .cua-hang-topbar__button,
+  .cua-hang-button,
+  .cua-hang-submit,
+  .cua-hang-product-card__action,
+  .cua-hang-overlay__action,
+  .cua-hang-order-cancel {
+    width: 100%;
+  }
+
+  .cua-hang-topbar__brand {
+    align-items: flex-start;
+  }
+}
+.cua-hang-search-row {
+  margin-bottom: 22px;
+}
+
+.cua-hang-search-input {
+  width: 100%;
+  padding: 15px 18px;
+  background: #151a22;
+  border: 1px solid #2a3140;
+  border-radius: 14px;
+  color: white;
+  outline: none;
+  font-size: 15px;
+}
+
+.cua-hang-search-input::placeholder {
+  color: #8b96ad;
+}

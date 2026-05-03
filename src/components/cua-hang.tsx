@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { useStore } from '../store/useStore'
+﻿import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from '../api'
+import { useStore } from '../store/useStore'
 import '../styles/cua-hang.css'
 
 const moneyFormatter = new Intl.NumberFormat('vi-VN', {
@@ -16,6 +16,43 @@ const categoryMeta = {
   'Phụ kiện': { icon: '🎧', gradient: 'linear-gradient(135deg, #3fe37a 0%, #32e9c0 100%)' },
 } as const
 
+const categoryCardClassName = {
+  Laptop: 'cua-hang-category-card cua-hang-category-card--laptop',
+  'Điện thoại': 'cua-hang-category-card cua-hang-category-card--phone',
+  'Máy tính bảng': 'cua-hang-category-card cua-hang-category-card--tablet',
+  'Phụ kiện': 'cua-hang-category-card cua-hang-category-card--accessory',
+} as const
+
+type CategoryName = keyof typeof categoryMeta
+
+type CartItem = { id: number; quantity: number }
+
+type CheckoutForm = {
+  name: string
+  phone: string
+  email: string
+  address: string
+  city: string
+  district: string
+  ward: string
+  note: string
+  paymentMethod: 'cod' | 'bank'
+  shippingMethod: 'standard' | 'express'
+}
+
+const defaultCheckoutForm = (name = '', email = ''): CheckoutForm => ({
+  name,
+  phone: '',
+  email,
+  address: '',
+  city: 'Hà Nội',
+  district: '',
+  ward: '',
+  note: '',
+  paymentMethod: 'cod',
+  shippingMethod: 'standard',
+})
+
 function Shop() {
   const products = useStore((state) => state.products)
   const currentUser = useStore((state) => state.currentUser)
@@ -25,30 +62,40 @@ function Shop() {
   const cancelOrder = useStore((state) => state.cancelOrder)
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<'all' | keyof typeof categoryMeta>('all')
-  const [cart, setCart] = useState<{ id: number; quantity: number }[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<'all' | CategoryName>('all')
+  const [cart, setCart] = useState<CartItem[]>([])
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [viewMode, setViewMode] = useState<'shop' | 'cart' | 'checkout' | 'orders'>('shop')
-  const [checkoutForm, setCheckoutForm] = useState({
-    name: currentUser?.name || '',
-    phone: '',
-    email: currentUser?.email || '',
-    address: '',
-    city: 'Hà Nội',
-    district: '',
-    ward: '',
-    note: '',
-    paymentMethod: 'cod',
-    shippingMethod: 'standard',
-  })
+  const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(() => defaultCheckoutForm(currentUser?.name || '', currentUser?.email || ''))
 
   const itemsPerPage = 12
   const shippingFee = checkoutForm.shippingMethod === 'express' ? 50000 : 30000
 
+  useEffect(() => {
+    setCheckoutForm((current) => ({
+      ...current,
+      name: currentUser?.name || current.name,
+      email: currentUser?.email || current.email,
+    }))
+  }, [currentUser?.email, currentUser?.name])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedProduct(null)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, selectedCategory])
+
   const categoryCards = useMemo(
     () =>
-      (Object.keys(categoryMeta) as Array<keyof typeof categoryMeta>).map((name) => ({
+      (Object.keys(categoryMeta) as CategoryName[]).map((name) => ({
         name,
         icon: categoryMeta[name].icon,
         count: products.filter((product) => product.category === name).length,
@@ -58,9 +105,10 @@ function Shop() {
   )
 
   const filteredProducts = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
     return products.filter((product) => {
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSearch = !term || product.name.toLowerCase().includes(term) || product.sku.toLowerCase().includes(term)
       return matchesCategory && matchesSearch && product.stock > 0
     })
   }, [products, selectedCategory, searchTerm])
@@ -80,28 +128,12 @@ function Shop() {
   const subtotal = cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0)
   const totalAmount = subtotal + shippingFee
 
-  const myOrders = useMemo(
-    () => pendingOrders.filter((order) => order.customerEmail === currentUser?.email),
-    [currentUser?.email, pendingOrders],
-  )
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setSelectedProduct(null)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  const myOrders = useMemo(() => pendingOrders.filter((order) => order.customerEmail === currentUser?.email), [currentUser?.email, pendingOrders])
 
   const addToCart = (productId: number) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === productId)
-      if (existing) {
-        return prev.map((item) => (item.id === productId ? { ...item, quantity: item.quantity + 1 } : item))
-      }
+      if (existing) return prev.map((item) => (item.id === productId ? { ...item, quantity: item.quantity + 1 } : item))
       return [...prev, { id: productId, quantity: 1 }]
     })
   }
@@ -171,57 +203,23 @@ function Shop() {
       alert(`Đặt hàng thành công!\n\nMã đơn: ${order.orderCode}\nTổng tiền: ${moneyFormatter.format(order.total)}`)
       setCart([])
       setViewMode('orders')
+      setCheckoutForm(defaultCheckoutForm(currentUser?.name || '', currentUser?.email || ''))
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Đặt hàng thất bại')
     }
   }
 
   const topBar = (backTo?: 'shop' | 'cart') => (
-    <div
-      className="cua-hang-topbar"
-      style={{
-        background: 'linear-gradient(135deg, #6f76e6 0%, #7f4eb6 52%, #8a4aa0 100%)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        padding: '22px 28px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 20,
-        boxShadow: '0 16px 40px rgba(22, 21, 47, 0.22)',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-          flexWrap: 'wrap',
-        }}
-      >
+    <div className="cua-hang-topbar">
+      <div className="cua-hang-topbar__inner">
         <div className="cua-hang-topbar__brand">
-          <div style={{ fontSize: '28px', lineHeight: 1 }}>🛍️</div>
+          <div className="cua-hang-topbar__icon">🛍️</div>
           <div>
-<h1 className="cua-hang-topbar__title">Shop.vn</h1>
-<p className="cua-hang-topbar__subtitle">
-              Tìm kiếm phong cách hoàn hảo cho mọi dịp
-            </p>
+            <h1 className="cua-hang-topbar__title">Shop.vn</h1>
+            <p className="cua-hang-topbar__subtitle">Tìm kiếm phong cách hoàn hảo cho mọi dịp</p>
           </div>
           {backTo && (
-            <button
-              onClick={() => setViewMode(backTo)}
-              style={{
-                marginLeft: '8px',
-                padding: '11px 16px',
-                background: 'rgba(255,255,255,0.16)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: '#fff',
-                borderRadius: '14px',
-                cursor: 'pointer',
-                fontWeight: 700,
-              }}
-            >
+            <button onClick={() => setViewMode(backTo)} className="cua-hang-topbar__button cua-hang-topbar__button--back">
               ← Quay lại
             </button>
           )}
@@ -230,51 +228,15 @@ function Shop() {
         <div className="cua-hang-topbar__actions">
           {viewMode === 'shop' && (
             <>
-              <button
-                onClick={() => setViewMode('orders')}
-                style={{
-                  padding: '13px 20px',
-                  background: 'rgba(255,255,255,0.18)',
-                  border: '1px solid rgba(255,255,255,0.16)',
-                  color: '#fff',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  minWidth: '132px',
-                }}
-              >
+              <button onClick={() => setViewMode('orders')} className="cua-hang-topbar__button">
                 📦 Đơn hàng
               </button>
-              <button
-                onClick={() => setViewMode('cart')}
-                style={{
-                  padding: '13px 20px',
-                  background: 'rgba(255,255,255,0.18)',
-                  border: '1px solid rgba(255,255,255,0.16)',
-                  color: '#fff',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  minWidth: '132px',
-                }}
-              >
+              <button onClick={() => setViewMode('cart')} className="cua-hang-topbar__button">
                 🛒 Giỏ hàng
               </button>
             </>
           )}
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '13px 20px',
-              background: 'rgba(50, 34, 92, 0.7)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#fff',
-              borderRadius: '16px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              minWidth: '120px',
-            }}
-          >
+          <button onClick={handleLogout} className="cua-hang-topbar__button cua-hang-topbar__button--logout">
             Đăng xuất
           </button>
         </div>
@@ -286,86 +248,31 @@ function Shop() {
     return (
       <div className="cua-hang-page">
         {topBar('shop')}
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '24px' }}>
+        <div className="cua-hang-container">
           {cartItems.length === 0 ? (
-            <div
-              style={{
-                background: '#151a22',
-                border: '1px solid #2a3140',
-                borderRadius: '20px',
-                padding: '56px 24px',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: '56px', marginBottom: '12px' }}>🛒</div>
-              <h2 style={{ margin: '0 0 10px', fontSize: '26px' }}>Giỏ hàng trống</h2>
-              <p style={{ margin: '0 0 20px', color: '#8b92a7' }}>Hãy thêm sản phẩm vào giỏ hàng để tiếp tục mua sắm.</p>
-              <button
-                onClick={() => setViewMode('shop')}
-                style={{
-                  padding: '12px 20px',
-                  border: '1px solid #4b5568',
-                  background: '#334155',
-                  color: 'white',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
+            <div className="cua-hang-empty">
+              <div className="cua-hang-empty__icon">🛒</div>
+              <h2 className="cua-hang-empty__title">Giỏ hàng trống</h2>
+              <p className="cua-hang-empty__text">Hãy thêm sản phẩm vào giỏ hàng để tiếp tục mua sắm.</p>
+              <button onClick={() => setViewMode('shop')} className="cua-hang-button">
                 Khám phá sản phẩm
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(320px, 1fr)', gap: '24px' }}>
-              <div style={{ display: 'grid', gap: '16px' }}>
+            <div className="cua-hang-grid-cart">
+              <div className="cua-hang-stack">
                 {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: 'flex',
-                      gap: '16px',
-                      background: '#151a22',
-                      border: '1px solid #2a3140',
-                      borderRadius: '18px',
-                      padding: '16px',
-                    }}
-                  >
-                    <img
-                      src={item.product.image}
-                      alt={item.product.name}
-                      style={{ width: '112px', height: '112px', objectFit: 'cover', borderRadius: '14px', background: '#0d1117' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: 'white' }}>{item.product.name}</h3>
-                      <div style={{ color: '#8fb7ff', fontWeight: 800, marginBottom: '12px' }}>{moneyFormatter.format(item.product.price)}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            border: '1px solid #2a3140',
-                            background: '#0d1117',
-                            color: 'white',
-                            borderRadius: '10px',
-                            cursor: 'pointer',
-                          }}
-                        >
+                  <div key={item.id} className="cua-hang-card cua-hang-card--cart-item">
+                    <img src={item.product.image} alt={item.product.name} className="cua-hang-cart-image" />
+                    <div className="cua-hang-cart-content">
+                      <h3 className="cua-hang-cart-title">{item.product.name}</h3>
+                      <div className="cua-hang-cart-price">{moneyFormatter.format(item.product.price)}</div>
+                      <div className="cua-hang-cart-controls">
+                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="cua-hang-qty-button">
                           -
                         </button>
-                        <span style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700 }}>{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            border: '1px solid #2a3140',
-                            background: '#0d1117',
-                            color: 'white',
-                            borderRadius: '10px',
-                            cursor: 'pointer',
-                          }}
-                        >
+                        <span className="cua-hang-qty-value">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="cua-hang-qty-button">
                           +
                         </button>
                       </div>
@@ -374,44 +281,24 @@ function Shop() {
                 ))}
               </div>
 
-              <div
-                style={{
-                  background: '#151a22',
-                  border: '1px solid #2a3140',
-                  borderRadius: '18px',
-                  padding: '20px',
-                  height: 'fit-content',
-                }}
-              >
-                <h3 style={{ marginTop: 0, color: 'white' }}>Tóm tắt đơn hàng</h3>
-                <div style={{ display: 'grid', gap: '10px', color: '#9ca3af', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="cua-hang-card cua-hang-card--summary">
+                <h3 className="cua-hang-summary-title">Tóm tắt đơn hàng</h3>
+                <div className="cua-hang-summary-grid">
+                  <div className="cua-hang-summary-row">
                     <span>Tạm tính</span>
                     <strong>{moneyFormatter.format(subtotal)}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div className="cua-hang-summary-row">
                     <span>Phí giao hàng</span>
                     <strong>{moneyFormatter.format(shippingFee)}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #2a3140', color: 'white' }}>
+                  <div className="cua-hang-summary-row cua-hang-summary-total">
                     <span>Tổng cộng</span>
                     <strong>{moneyFormatter.format(totalAmount)}</strong>
                   </div>
                 </div>
-                <button
-                  onClick={() => setViewMode('checkout')}
-                  style={{
-                    width: '100%',
-                    padding: '13px 16px',
-                    background: '#334155',
-                    color: '#ffffff',
-                    border: '1px solid #4b5568',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                  }}
-                >
-                  Tiếp tục thanh toán
+                <button onClick={() => setViewMode('checkout')} className="cua-hang-submit cua-hang-submit--full">
+                  Tiến hành thanh toán
                 </button>
               </div>
             </div>
@@ -425,108 +312,52 @@ function Shop() {
     return (
       <div className="cua-hang-page">
         {topBar('cart')}
-        <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.7fr)', gap: '20px' }}>
+        <div className="cua-hang-container cua-hang-container--checkout">
+          <div className="cua-hang-checkout-grid">
             <form
               onSubmit={(event) => {
                 event.preventDefault()
                 void handlePlaceOrder()
               }}
-              style={{
-                background: '#151a22',
-                border: '1px solid #2a3140',
-                borderRadius: '18px',
-                padding: '24px',
-                display: 'grid',
-                gap: '16px',
-              }}
+              className="cua-hang-card cua-hang-card--checkout"
             >
-              <h2 style={{ margin: 0, fontSize: '24px' }}>Thông tin giao hàng</h2>
+              <h2 className="cua-hang-form-title">Thông tin giao hàng</h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div className="cua-hang-form-grid">
                 <Field label="Họ tên" htmlFor="checkout-name">
-                  <input
-                    id="checkout-name"
-                    autoComplete="name"
-                    value={checkoutForm.name}
-                    onChange={(event) => setCheckoutForm({ ...checkoutForm, name: event.target.value })}
-                    style={inputStyle}
-                  />
+                  <input id="checkout-name" autoComplete="name" value={checkoutForm.name} onChange={(event) => setCheckoutForm({ ...checkoutForm, name: event.target.value })} className="cua-hang-input" />
                 </Field>
                 <Field label="Số điện thoại" htmlFor="checkout-phone">
-                  <input
-                    id="checkout-phone"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    value={checkoutForm.phone}
-                    onChange={(event) => setCheckoutForm({ ...checkoutForm, phone: event.target.value })}
-                    style={inputStyle}
-                  />
+                  <input id="checkout-phone" type="tel" inputMode="tel" autoComplete="tel" value={checkoutForm.phone} onChange={(event) => setCheckoutForm({ ...checkoutForm, phone: event.target.value })} className="cua-hang-input" />
                 </Field>
               </div>
 
               <Field label="Email" htmlFor="checkout-email">
-                <input
-                  id="checkout-email"
-                  type="email"
-                  autoComplete="email"
-                  value={checkoutForm.email}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, email: event.target.value })}
-                  style={inputStyle}
-                />
+                <input id="checkout-email" type="email" autoComplete="email" value={checkoutForm.email} onChange={(event) => setCheckoutForm({ ...checkoutForm, email: event.target.value })} className="cua-hang-input" />
               </Field>
 
               <Field label="Địa chỉ" htmlFor="checkout-address">
-                <input
-                  id="checkout-address"
-                  autoComplete="street-address"
-                  value={checkoutForm.address}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, address: event.target.value })}
-                  style={inputStyle}
-                />
+                <input id="checkout-address" autoComplete="street-address" value={checkoutForm.address} onChange={(event) => setCheckoutForm({ ...checkoutForm, address: event.target.value })} className="cua-hang-input" />
               </Field>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div className="cua-hang-form-grid">
                 <Field label="Thành phố" htmlFor="checkout-city">
-                  <input
-                    id="checkout-city"
-                    autoComplete="address-level1"
-                    value={checkoutForm.city}
-                    onChange={(event) => setCheckoutForm({ ...checkoutForm, city: event.target.value })}
-                    style={inputStyle}
-                  />
+                  <input id="checkout-city" autoComplete="address-level1" value={checkoutForm.city} onChange={(event) => setCheckoutForm({ ...checkoutForm, city: event.target.value })} className="cua-hang-input" />
                 </Field>
                 <Field label="Quận / huyện" htmlFor="checkout-district">
-                  <input
-                    id="checkout-district"
-                    autoComplete="address-level2"
-                    value={checkoutForm.district}
-                    onChange={(event) => setCheckoutForm({ ...checkoutForm, district: event.target.value })}
-                    style={inputStyle}
-                  />
+                  <input id="checkout-district" autoComplete="address-level2" value={checkoutForm.district} onChange={(event) => setCheckoutForm({ ...checkoutForm, district: event.target.value })} className="cua-hang-input" />
                 </Field>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div className="cua-hang-form-grid">
                 <Field label="Vận chuyển" htmlFor="checkout-shipping">
-                  <select
-                    id="checkout-shipping"
-                    value={checkoutForm.shippingMethod}
-                    onChange={(event) => setCheckoutForm({ ...checkoutForm, shippingMethod: event.target.value })}
-                    style={inputStyle}
-                  >
+                  <select id="checkout-shipping" value={checkoutForm.shippingMethod} onChange={(event) => setCheckoutForm({ ...checkoutForm, shippingMethod: event.target.value as CheckoutForm['shippingMethod'] })} className="cua-hang-input">
                     <option value="standard">Tiêu chuẩn - 30.000 ₫</option>
                     <option value="express">Nhanh - 50.000 ₫</option>
                   </select>
                 </Field>
                 <Field label="Thanh toán" htmlFor="checkout-payment">
-                  <select
-                    id="checkout-payment"
-                    value={checkoutForm.paymentMethod}
-                    onChange={(event) => setCheckoutForm({ ...checkoutForm, paymentMethod: event.target.value })}
-                    style={inputStyle}
-                  >
+                  <select id="checkout-payment" value={checkoutForm.paymentMethod} onChange={(event) => setCheckoutForm({ ...checkoutForm, paymentMethod: event.target.value as CheckoutForm['paymentMethod'] })} className="cua-hang-input">
                     <option value="cod">Thanh toán khi nhận hàng</option>
                     <option value="bank">Chuyển khoản</option>
                   </select>
@@ -534,59 +365,30 @@ function Shop() {
               </div>
 
               <Field label="Ghi chú" htmlFor="checkout-note">
-                <textarea
-                  id="checkout-note"
-                  rows={4}
-                  value={checkoutForm.note}
-                  onChange={(event) => setCheckoutForm({ ...checkoutForm, note: event.target.value })}
-                  style={{ ...inputStyle, resize: 'vertical', minHeight: '120px' }}
-                />
+                <textarea id="checkout-note" rows={4} value={checkoutForm.note} onChange={(event) => setCheckoutForm({ ...checkoutForm, note: event.target.value })} className="cua-hang-input cua-hang-input--textarea" />
               </Field>
 
-              <button
-                type="submit"
-                style={{
-                  padding: '14px 18px',
-                  background: 'linear-gradient(135deg, #7a73ea 0%, #7b4eb6 100%)',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  fontWeight: 800,
-                  fontSize: '15px',
-                  boxShadow: '0 12px 28px rgba(122, 115, 234, 0.25)',
-                }}
-              >
+              <button type="submit" className="cua-hang-submit">
                 Xác nhận đặt hàng
               </button>
             </form>
 
-            <aside
-              style={{
-                background: '#151a22',
-                border: '1px solid #2a3140',
-                borderRadius: '18px',
-                padding: '24px',
-                height: 'fit-content',
-                position: 'sticky',
-                top: '98px',
-              }}
-            >
-              <h3 style={{ marginTop: 0, color: 'white' }}>Tóm tắt</h3>
-              <div style={{ display: 'grid', gap: '10px', color: '#9ca3af' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <aside className="cua-hang-card cua-hang-card--checkout-summary">
+              <h3 className="cua-hang-summary-title">Tóm tắt</h3>
+              <div className="cua-hang-summary-grid">
+                <div className="cua-hang-summary-row">
                   <span>Sản phẩm</span>
                   <strong>{cartItems.length}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="cua-hang-summary-row">
                   <span>Tạm tính</span>
                   <strong>{moneyFormatter.format(subtotal)}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="cua-hang-summary-row">
                   <span>Phí giao hàng</span>
                   <strong>{moneyFormatter.format(shippingFee)}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid #2a3140', color: 'white' }}>
+                <div className="cua-hang-summary-row cua-hang-summary-total">
                   <span>Tổng cộng</span>
                   <strong>{moneyFormatter.format(totalAmount)}</strong>
                 </div>
@@ -602,46 +404,27 @@ function Shop() {
     return (
       <div className="cua-hang-page">
         {topBar('shop')}
-        <div style={{ maxWidth: '1040px', margin: '0 auto', padding: '24px', display: 'grid', gap: '16px' }}>
+        <div className="cua-hang-container cua-hang-container--orders">
           {myOrders.length === 0 ? (
-            <div
-              style={{
-                background: '#151a22',
-                border: '1px solid #2a3140',
-                borderRadius: '18px',
-                padding: '32px',
-                textAlign: 'center',
-                color: '#8b92a7',
-              }}
-            >
-              Chưa có đơn hàng nào.
-            </div>
+            <div className="cua-hang-empty cua-hang-empty--orders">Chưa có đơn hàng nào.</div>
           ) : (
             myOrders.map((order) => (
-              <div
-                key={order.id}
-                style={{
-                  background: '#151a22',
-                  border: '1px solid #2a3140',
-                  borderRadius: '18px',
-                  padding: '18px',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <div key={order.id} className="cua-hang-card cua-hang-card--orders">
+                <div className="cua-hang-order-head">
                   <div>
-                    <div style={{ fontWeight: 800, color: 'white', marginBottom: '4px' }}>{order.orderCode}</div>
-                    <div style={{ color: '#8b92a7', fontSize: '14px' }}>
+                    <div className="cua-hang-order-code">{order.orderCode}</div>
+                    <div className="cua-hang-order-meta">
                       {order.customerName} · {order.customerEmail}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, color: 'white' }}>{moneyFormatter.format(order.total)}</div>
-                    <div style={{ color: '#8b92a7', fontSize: '14px' }}>{String(order.status)}</div>
+                  <div className="cua-hang-order-total-wrap">
+                    <div className="cua-hang-order-total">{moneyFormatter.format(order.total)}</div>
+                    <div className="cua-hang-order-status">{String(order.status)}</div>
                   </div>
                 </div>
-                <div style={{ display: 'grid', gap: '8px' }}>
+                <div className="cua-hang-orders-grid">
                   {order.items.map((item, index) => (
-                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', fontSize: '14px', gap: '12px' }}>
+                    <div key={index} className="cua-hang-order-row">
                       <span>
                         {item.productName} × {item.quantity}
                       </span>
@@ -650,7 +433,7 @@ function Shop() {
                   ))}
                 </div>
                 {order.status === 'pending' && (
-                  <div style={{ marginTop: '16px' }}>
+                  <div className="cua-hang-order-actions">
                     <button
                       onClick={async () => {
                         if (!confirm('Bạn có chắc muốn hủy đơn hàng này?')) return
@@ -661,15 +444,7 @@ function Shop() {
                           alert(error instanceof Error ? error.message : 'Hủy đơn thất bại')
                         }
                       }}
-                      style={{
-                        padding: '10px 14px',
-                        background: '#2a1114',
-                        color: '#fca5a5',
-                        border: '1px solid #7f1d1d',
-                        borderRadius: '10px',
-                        cursor: 'pointer',
-                        fontWeight: 700,
-                      }}
+                      className="cua-hang-order-cancel"
                     >
                       Hủy đơn
                     </button>
@@ -685,93 +460,15 @@ function Shop() {
 
   return (
     <div className="cua-hang-page">
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #6f76e6 0%, #7f4eb6 52%, #8a4aa0 100%)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          padding: '20px 28px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 20,
-          boxShadow: '0 16px 40px rgba(22, 21, 47, 0.22)',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1280px',
-            margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(240px, 300px) minmax(320px, 1fr) auto',
-            gap: '16px',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-            <div style={{ fontSize: '30px' }}>🛍️</div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 800 }}>Shop.vn</h1>
-              <div style={{ color: 'rgba(255,255,255,0.76)', fontSize: '14px' }}>Mua sắm đơn giản, dễ nhìn hơn</div>
-            </div>
+      {topBar()}
+      <div className="cua-hang-container cua-hang-container--wide">
+        <section className="cua-hang-page__section">
+          <div className="cua-hang-page__section-title">
+            <h2 className="cua-hang-page__title">Danh Mục Sản Phẩm</h2>
+            <p className="cua-hang-page__subtitle">Tìm kiếm phong cách hoàn hảo cho mọi dịp</p>
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <input
-              type="text"
-              placeholder="Tìm kiếm sản phẩm..."
-              value={searchTerm}
-              onChange={(event) => {
-                setSearchTerm(event.target.value)
-                setCurrentPage(1)
-              }}
-              style={{
-                width: '100%',
-                padding: '14px 16px 14px 18px',
-                border: '1px solid rgba(255,255,255,0.16)',
-                borderRadius: '16px',
-                background: 'rgba(255,255,255,0.14)',
-                color: 'white',
-                outline: 'none',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <div style={{ color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>Xin chào, {currentUser?.name || 'Khách hàng'}</div>
-            <button
-              onClick={() => setViewMode('orders')}
-              style={headerButtonStyle}
-            >
-              📦 Đơn hàng
-            </button>
-            <button
-              onClick={() => setViewMode('cart')}
-              style={headerButtonStyle}
-            >
-              🛒 Giỏ hàng
-            </button>
-            <button
-              onClick={handleLogout}
-              style={{
-                ...headerButtonStyle,
-                background: 'rgba(72, 46, 104, 0.88)',
-                minWidth: '120px',
-              }}
-            >
-              Đăng xuất
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="cua-hang-container">
-<section className="cua-hang-page__section">
-<div className="cua-hang-page__section-title">
-            <h2 style={{ margin: '0 0 10px', fontSize: '44px', lineHeight: 1.1, letterSpacing: '-0.03em' }}>Danh Mục Sản Phẩm</h2>
-            <p style={{ margin: 0, color: '#8b92a7', fontSize: '16px' }}>Tìm kiếm phong cách hoàn hảo cho mọi dịp</p>
-          </div>
-
-<div className="cua-hang-category-grid">
+          <div className="cua-hang-category-grid">
             {categoryCards.map((category) => (
               <button
                 key={category.name}
@@ -779,35 +476,25 @@ function Shop() {
                   setSelectedCategory(category.name)
                   setCurrentPage(1)
                 }}
-                style={{
-                  border: 'none',
-                  background: category.gradient,
-                  borderRadius: '24px',
-                  padding: '28px 20px',
-                  minHeight: '210px',
-                  color: 'white',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 18px 34px rgba(8, 15, 40, 0.28)',
-                }}
+                className={categoryCardClassName[category.name]}
               >
-<div className="cua-hang-category-icon">{category.icon}</div>
-<div className="cua-hang-category-name">{category.name}</div>
-                <div style={{ fontSize: '15px', opacity: 0.9 }}>{category.count} sản phẩm</div>
+                <div className="cua-hang-category-icon">{category.icon}</div>
+                <div className="cua-hang-category-name">{category.name}</div>
+                <div className="cua-hang-category-count">{category.count} sản phẩm</div>
               </button>
             ))}
           </div>
         </section>
 
-<section className="cua-hang-page__section cua-hang-page__section--compact">
-<div className="cua-hang-header-row">
+        <section className="cua-hang-page__section cua-hang-page__section--compact">
+          <div className="cua-hang-header-row">
             <div>
-              <h2 style={{ margin: '0 0 6px', fontSize: '30px' }}>Sản Phẩm Nổi Bật</h2>
-              <div style={{ color: '#8b92a7' }}>Những sản phẩm được yêu thích nhất</div>
+              <h2 className="cua-hang-header-title">Sản Phẩm Nổi Bật</h2>
+              <div className="cua-hang-header-subtitle">Những sản phẩm được yêu thích nhất</div>
             </div>
           </div>
 
-<div className="cua-hang-filter-row">
+          <div className="cua-hang-filter-row">
             <FilterChip active={selectedCategory === 'all'} onClick={() => setSelectedCategory('all')}>
               🏠 Tất cả
             </FilterChip>
@@ -825,90 +512,35 @@ function Shop() {
             ))}
           </div>
 
-<div className="cua-hang-product-grid">
+          <div className="cua-hang-search-row">
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Tìm kiếm sản phẩm, SKU..."
+              className="cua-hang-search-input"
+            />
+          </div>
+
+          <div className="cua-hang-product-grid">
             {currentProducts.length === 0 ? (
-              <div
-                style={{
-                  gridColumn: '1 / -1',
-                  background: '#151a22',
-                  border: '1px solid #2a3140',
-                  borderRadius: '18px',
-                  padding: '32px',
-                  color: '#8b92a7',
-                }}
-              >
-                Không tìm thấy sản phẩm phù hợp với bộ lọc hiện tại.
-              </div>
+              <div className="cua-hang-product-empty">Không tìm thấy sản phẩm phù hợp với bộ lọc hiện tại.</div>
             ) : (
               currentProducts.map((product) => (
-                <article
-                  key={product.id}
-                  style={{
-                    background: '#151a22',
-                    border: '1px solid #2a3140',
-                    borderRadius: '20px',
-                    overflow: 'hidden',
-                    boxShadow: '0 18px 32px rgba(0, 0, 0, 0.18)',
-                  }}
-                >
-                  <button
-                    onClick={() => setSelectedProduct(product.id)}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: 0,
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-<div className="cua-hang-product-card__image-wrap">
-                      <img
-                        loading="lazy"
-                        src={product.image}
-                        alt={product.name}
-                        style={{ width: '100%', height: '230px', objectFit: 'cover', background: '#0d1117' }}
-                      />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: '14px',
-                          top: '14px',
-                          padding: '7px 12px',
-                          borderRadius: '999px',
-                          background: 'rgba(79, 70, 229, 0.88)',
-                          color: 'white',
-                          fontSize: '12px',
-                          fontWeight: 800,
-                        }}
-                      >
-                        {product.category}
-                      </div>
+                <article key={product.id} className="cua-hang-product-card">
+                  <button onClick={() => setSelectedProduct(product.id)} className="cua-hang-product-card__button">
+                    <div className="cua-hang-product-card__image-wrap">
+                      <img loading="lazy" src={product.image} alt={product.name} className="cua-hang-product-card__image" />
+                      <div className="cua-hang-product-card__badge">{product.category}</div>
                     </div>
-<div className="cua-hang-product-card__body">
-<h3 className="cua-hang-product-card__title">{product.name}</h3>
-<div className="cua-hang-product-card__price">{moneyFormatter.format(product.price)}</div>
-                      <div style={{ fontSize: '14px', color: '#8b92a7' }}>Còn {product.stock} sản phẩm</div>
+                    <div className="cua-hang-product-card__body">
+                      <h3 className="cua-hang-product-card__title">{product.name}</h3>
+                      <div className="cua-hang-product-card__price">{moneyFormatter.format(product.price)}</div>
+                      <div className="cua-hang-product-card__stock">Còn {product.stock} sản phẩm</div>
                     </div>
                   </button>
-
-<div className="cua-hang-product-card__footer">
-                    <button
-                      onClick={() => addToCart(product.id)}
-                      style={{
-                        width: '100%',
-                        padding: '13px 14px',
-                        background: 'linear-gradient(135deg, #7a73ea 0%, #7b4eb6 100%)',
-                        color: '#ffffff',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: '14px',
-                        cursor: 'pointer',
-                        fontWeight: 800,
-                        boxShadow: '0 10px 24px rgba(122, 115, 234, 0.18)',
-                      }}
-                    >
-                      Thêm vào giỏ
+                  <div className="cua-hang-product-card__footer">
+                    <button onClick={() => addToCart(product.id)} className="cua-hang-product-card__action">
+                      Thêm vào giỏ hàng
                     </button>
                   </div>
                 </article>
@@ -916,91 +548,42 @@ function Shop() {
             )}
           </div>
 
-<div className="cua-hang-pagination">
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  border: page === currentPage ? '1px solid #8c85ef' : '1px solid #2a3140',
-                  background: page === currentPage ? '#7a73ea' : '#151a22',
-                  color: page === currentPage ? '#ffffff' : '#9ca3af',
-                  cursor: 'pointer',
-                  fontWeight: 800,
-                }}
-              >
-                {page}
+          {totalPages > 1 && (
+            <div className="cua-hang-pagination">
+              <button onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="cua-hang-pagination__button">
+                ←
               </button>
-            ))}
-          </div>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`cua-hang-pagination__button ${currentPage === page ? 'cua-hang-pagination__button--active' : ''}`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="cua-hang-pagination__button">
+                →
+              </button>
+            </div>
+          )}
         </section>
       </div>
 
       {productDetail && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="product-detail-title"
-          onClick={() => setSelectedProduct(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(5, 10, 20, 0.72)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            zIndex: 40,
-          }}
-        >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: 'min(100%, 980px)',
-              background: '#151a22',
-              borderRadius: '22px',
-              border: '1px solid #2a3140',
-              overflow: 'hidden',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            }}
-          >
-            <img
-              loading="lazy"
-              src={productDetail.image}
-              alt={productDetail.name}
-              style={{ width: '100%', height: '100%', minHeight: '420px', objectFit: 'cover', background: '#0d1117' }}
-            />
-<div className="cua-hang-overlay__body">
-              <button
-                type="button"
-                onClick={() => setSelectedProduct(null)}
-                aria-label="Đóng chi tiết sản phẩm"
-                style={{
-                  position: 'absolute',
-                  top: '18px',
-                  right: '18px',
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '999px',
-                  border: '1px solid #2a3140',
-                  background: '#0d1117',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                }}
-              >
+        <div role="dialog" aria-modal="true" aria-labelledby="product-detail-title" onClick={() => setSelectedProduct(null)} className="cua-hang-overlay">
+          <div onClick={(event) => event.stopPropagation()} className="cua-hang-overlay__modal">
+            <img loading="lazy" src={productDetail.image} alt={productDetail.name} className="cua-hang-overlay__image" />
+            <div className="cua-hang-overlay__body">
+              <button type="button" onClick={() => setSelectedProduct(null)} aria-label="Đóng chi tiết sản phẩm" className="cua-hang-overlay__close">
                 ×
               </button>
-<div className="cua-hang-overlay__category">{productDetail.category}</div>
-<h2 id="product-detail-title" className="cua-hang-overlay__title">
+              <div className="cua-hang-overlay__category">{productDetail.category}</div>
+              <h2 id="product-detail-title" className="cua-hang-overlay__title">
                 {productDetail.name}
               </h2>
-<div className="cua-hang-overlay__price">{moneyFormatter.format(productDetail.price)}</div>
-<div className="cua-hang-overlay__meta">
+              <div className="cua-hang-overlay__price">{moneyFormatter.format(productDetail.price)}</div>
+              <div className="cua-hang-overlay__meta">
                 <div>
                   <strong>SKU:</strong> {productDetail.sku}
                 </div>
@@ -1011,37 +594,14 @@ function Shop() {
                   <strong>Đã bán:</strong> {productDetail.sold}
                 </div>
               </div>
-<p className="cua-hang-overlay__desc">
+              <p className="cua-hang-overlay__desc">
                 {productDetail.description || 'Sản phẩm chính hãng, mới 100%, phù hợp nhu cầu sử dụng hằng ngày.'}
               </p>
-<div className="cua-hang-overlay__actions">
-                <button
-                  onClick={() => addToCart(productDetail.id)}
-                  style={{
-                    flex: '1 1 180px',
-                    padding: '12px 16px',
-                    background: 'linear-gradient(135deg, #7a73ea 0%, #7b4eb6 100%)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    fontWeight: 800,
-                  }}
-                >
+              <div className="cua-hang-overlay__actions">
+                <button onClick={() => addToCart(productDetail.id)} className="cua-hang-overlay__action">
                   Thêm vào giỏ hàng
                 </button>
-                <button
-                  onClick={() => setSelectedProduct(null)}
-                  style={{
-                    padding: '12px 16px',
-                    background: '#0d1117',
-                    color: '#9ca3af',
-                    border: '1px solid #2a3140',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                  }}
-                >
+                <button onClick={() => setSelectedProduct(null)} className="cua-hang-overlay__action cua-hang-overlay__action--secondary">
                   Đóng
                 </button>
               </div>
@@ -1055,60 +615,19 @@ function Shop() {
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: ReactNode }) {
   return (
-    <label htmlFor={htmlFor} style={{ display: 'grid', gap: '6px' }}>
-<span className="cua-hang-field__label">{label}</span>
+    <label htmlFor={htmlFor} className="cua-hang-field">
+      <span className="cua-hang-field__label">{label}</span>
       {children}
     </label>
   )
 }
 
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '10px 16px',
-        borderRadius: '999px',
-        border: active ? '1px solid #8c85ef' : '1px solid #2a3140',
-        background: active ? 'linear-gradient(135deg, #7a73ea 0%, #7b4eb6 100%)' : '#151a22',
-        color: '#fff',
-        cursor: 'pointer',
-        fontWeight: 700,
-        boxShadow: active ? '0 10px 20px rgba(122, 115, 234, 0.18)' : 'none',
-      }}
-    >
+    <button onClick={onClick} className={`cua-hang-filter-chip ${active ? 'cua-hang-filter-chip--active' : ''}`}>
       {children}
     </button>
   )
-}
-
-const inputStyle: CSSProperties = {
-  width: '100%',
-  padding: '13px 14px',
-  background: '#0d1117',
-  border: '1px solid #2a3140',
-  borderRadius: '12px',
-  color: 'white',
-  outline: 'none',
-}
-
-const headerButtonStyle: CSSProperties = {
-  padding: '13px 18px',
-  background: 'rgba(255,255,255,0.16)',
-  border: '1px solid rgba(255,255,255,0.16)',
-  color: '#fff',
-  borderRadius: '16px',
-  cursor: 'pointer',
-  fontWeight: 800,
-  minWidth: '110px',
 }
 
 export default Shop
