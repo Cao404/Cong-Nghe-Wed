@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState, type CSSProperties, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+﻿import { useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import Header from './Header'
 import { api } from '../api'
 import { useStore } from '../store/useStore'
 import { DEFAULT_PRODUCTS } from '../defaultProducts'
-import Header from './Header'
 import '../styles/san-pham.css'
 
 type ProductForm = {
@@ -25,6 +25,12 @@ const emptyForm: ProductForm = {
   description: '',
 }
 
+const moneyFormatter = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
+  maximumFractionDigits: 0,
+})
+
 function Products() {
   const products = useStore((state) => state.products)
   const addProduct = useStore((state) => state.addProduct)
@@ -44,13 +50,14 @@ function Products() {
 
   const categories = useMemo(() => ['all', ...Array.from(new Set(visibleProducts.map((product) => product.category)))], [visibleProducts])
 
-  const filteredProducts = visibleProducts.filter((product) => {
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesSearch
-  })
+  const filteredProducts = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    return visibleProducts.filter((product) => {
+      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
+      const matchesSearch = !term || product.name.toLowerCase().includes(term) || product.sku.toLowerCase().includes(term)
+      return matchesCategory && matchesSearch
+    })
+  }, [searchTerm, selectedCategory, visibleProducts])
 
   const selectedProduct = selectedProductId ? visibleProducts.find((product) => product.id === selectedProductId) ?? null : null
 
@@ -123,9 +130,7 @@ function Products() {
   }
 
   const handleUpdate = async () => {
-    if (!editTargetId) {
-      return
-    }
+    if (!editTargetId) return
 
     if (!form.name || !form.sku || !form.category || !form.price || !form.stock) {
       alert('Vui lòng điền đầy đủ thông tin!')
@@ -163,9 +168,7 @@ function Products() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
-      return
-    }
+    if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return
 
     try {
       await api.deleteProduct(id)
@@ -176,98 +179,72 @@ function Products() {
   }
 
   return (
-    <div className="product-page" style={{ color: 'white', minHeight: '100vh' }}>
-      <Header
-        title="DANH SÁCH SẢN PHẨM"
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Tìm kiếm sản phẩm..."
-      />
+    <div className="product-page">
+      <Header title="DANH SÁCH SẢN PHẨM" searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Tìm kiếm sản phẩm..." />
 
-      <div className="product-page__content" style={{ padding: '40px' }}>
-        <div className="product-page__filters" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+      <div className="product-page__content">
+        <div className="product-page__filters">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              style={{
-                padding: '10px 16px',
-                borderRadius: '999px',
-                border: selectedCategory === category ? '1px solid #8c85ef' : '1px solid #2a3140',
-                background: selectedCategory === category ? '#7a73ea' : '#151a22',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: 700,
-              }}
+              className={`product-page__btn-chip ${selectedCategory === category ? 'product-page__btn-chip--active' : ''}`}
             >
               {category === 'all' ? 'Tất cả' : category}
             </button>
           ))}
-          <button
-            onClick={openAddModal}
-            style={{
-              marginLeft: 'auto',
-              padding: '10px 16px',
-              borderRadius: '12px',
-              border: 'none',
-              background: '#f97316',
-              color: 'white',
-              cursor: 'pointer',
-              fontWeight: 700,
-            }}
-          >
+          <button onClick={openAddModal} className="product-page__btn-primary product-page__btn-primary--add">
             + Thêm sản phẩm
           </button>
         </div>
 
-        <div className="product-page__card" style={{ background: '#1a1f2e', border: '1px solid #2a2f3e', borderRadius: '12px', overflow: 'hidden' }}>
-          <div className="product-page__section-title" style={{ padding: '16px 20px', borderBottom: '1px solid #2a2f3e', color: '#8b92a7', fontSize: '13px' }}>
-            Hiển thị {filteredProducts.length} sản phẩm
-          </div>
+        <div className="product-page__card">
+          <div className="product-page__section-title">Hiển thị {filteredProducts.length} sản phẩm</div>
 
-          <table className="product-page__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="product-page__table">
             <thead>
-              <tr className="product-page__table-head" style={{ background: '#0f1419', borderBottom: '1px solid #2a2f3e' }}>
-                <th style={thStyle}>Sản phẩm</th>
-                <th style={thStyle}>SKU</th>
-                <th style={thStyle}>Ảnh</th>
-                <th style={thStyle}>Danh mục</th>
-                <th style={thStyle}>Giá</th>
-                <th style={thStyle}>Kho</th>
-                <th style={thStyle}>Đã bán</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Hành động</th>
+              <tr className="product-page__table-head">
+                <th className="product-page__th">Sản phẩm</th>
+                <th className="product-page__th">SKU</th>
+                <th className="product-page__th">Ảnh</th>
+                <th className="product-page__th">Danh mục</th>
+                <th className="product-page__th">Giá</th>
+                <th className="product-page__th">Kho</th>
+                <th className="product-page__th">Đã bán</th>
+                <th className="product-page__th product-page__th--center">Hành động</th>
               </tr>
             </thead>
             <tbody>
               {filteredProducts.map((product) => (
-                <tr key={product.id} className="product-page__table-row" style={{ borderBottom: '1px solid #2a2f3e' }}>
-                    <td style={tdStyle}>
-                      <div className="product-page__product-cell" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <img src={product.image} alt={product.name} className="product-page__thumb" style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover' }} />
-                        <div>
-                          <div style={{ fontWeight: 700, color: 'white' }}>{product.name}</div>
-                          <div style={{ color: '#8b92a7', fontSize: '13px' }}>{product.description || 'Không có mô tả'}</div>
-                        </div>
+                <tr key={product.id} className="product-page__table-row">
+                  <td className="product-page__td">
+                    <div className="product-page__product-cell">
+                      <img src={product.image} alt={product.name} className="product-page__thumb" />
+                      <div>
+                        <div className="product-page__product-name">{product.name}</div>
+                        <div className="product-page__product-desc">{product.description || 'Không có mô tả'}</div>
                       </div>
-                    </td>
-                    <td style={tdStyle}>{product.sku}</td>
-                    <td style={tdStyle}>
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="product-page__thumb--small"
-                        style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid #2a2f3e' }}
-                      />
-                    </td>
-                  <td style={tdStyle}>{product.category}</td>
-                  <td style={tdStyle}>{money(product.price)}</td>
-                  <td style={tdStyle}>{product.stock}</td>
-                  <td style={tdStyle}>{product.sold}</td>
-                    <td style={{ ...tdStyle, textAlign: 'center' }}>
-                      <div className="product-page__actions" style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                      <button onClick={() => setSelectedProductId(product.id)} style={actionButton('#3b82f6')}>Chi tiết</button>
-                      <button onClick={() => openEditModal(product)} style={actionButton('#10b981')}>Sửa</button>
-                      <button onClick={() => handleDelete(product.id)} style={actionButton('#ef4444')}>Xóa</button>
+                    </div>
+                  </td>
+                  <td className="product-page__td">{product.sku}</td>
+                  <td className="product-page__td">
+                    <img src={product.image} alt={product.name} className="product-page__thumb--small" />
+                  </td>
+                  <td className="product-page__td">{product.category}</td>
+                  <td className="product-page__td">{moneyFormatter.format(product.price)}</td>
+                  <td className="product-page__td">{product.stock}</td>
+                  <td className="product-page__td">{product.sold}</td>
+                  <td className="product-page__td product-page__td--center">
+                    <div className="product-page__actions">
+                      <button onClick={() => setSelectedProductId(product.id)} className="product-page__btn-action product-page__btn-action--info">
+                        Chi tiết
+                      </button>
+                      <button onClick={() => openEditModal(product)} className="product-page__btn-action product-page__btn-action--success">
+                        Sửa
+                      </button>
+                      <button onClick={() => handleDelete(product.id)} className="product-page__btn-action product-page__btn-action--danger">
+                        Xóa
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -311,15 +288,17 @@ function Products() {
 
       {selectedProduct && (
         <Modal title="Chi tiết sản phẩm" onClose={() => setSelectedProductId(null)} hideSubmit>
-          <div style={{ display: 'grid', gap: '12px' }}>
-            <img src={selectedProduct.image} alt={selectedProduct.name} style={{ width: '100%', height: '220px', objectFit: 'cover', borderRadius: '12px' }} />
-            <div><strong>Tên:</strong> {selectedProduct.name}</div>
-            <div><strong>SKU:</strong> {selectedProduct.sku}</div>
-            <div><strong>Danh mục:</strong> {selectedProduct.category}</div>
-            <div><strong>Giá:</strong> {money(selectedProduct.price)}</div>
-            <div><strong>Tồn kho:</strong> {selectedProduct.stock}</div>
-            <div><strong>Đã bán:</strong> {selectedProduct.sold}</div>
-            <div><strong>Mô tả:</strong> {selectedProduct.description || 'Không có mô tả'}</div>
+          <div className="product-page__detail-grid">
+            <img src={selectedProduct.image} alt={selectedProduct.name} className="product-page__detail-image" />
+            <div className="product-page__detail-info">
+              <div><strong>Tên:</strong> {selectedProduct.name}</div>
+              <div><strong>SKU:</strong> {selectedProduct.sku}</div>
+              <div><strong>Danh mục:</strong> {selectedProduct.category}</div>
+              <div><strong>Giá:</strong> {moneyFormatter.format(selectedProduct.price)}</div>
+              <div><strong>Tồn kho:</strong> {selectedProduct.stock}</div>
+              <div><strong>Đã bán:</strong> {selectedProduct.sold}</div>
+              <div><strong>Mô tả:</strong> {selectedProduct.description || 'Không có mô tả'}</div>
+            </div>
           </div>
         </Modal>
       )}
@@ -337,41 +316,33 @@ function FormFields({
   onPickImage: () => void
 }) {
   return (
-    <div style={{ display: 'grid', gap: '14px' }}>
-      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên sản phẩm" style={inputStyle} />
-      <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="SKU" style={inputStyle} />
-      <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Danh mục" style={inputStyle} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="Giá" type="number" style={inputStyle} />
-        <input value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="Số lượng" type="number" style={inputStyle} />
+    <div className="product-page__modal-fields">
+      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên sản phẩm" className="product-page__input" />
+      <input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="SKU" className="product-page__input" />
+      <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Danh mục" className="product-page__input" />
+      <div className="product-page__modal-grid-2">
+        <input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="Giá" type="number" className="product-page__input" />
+        <input value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} placeholder="Số lượng" type="number" className="product-page__input" />
       </div>
-      <div style={{ display: 'grid', gap: '10px' }}>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button type="button" onClick={onPickImage} style={secondaryButtonStyle}>
-            Chọn ảnh từ máy
-          </button>
-          <input
-            value={form.image.startsWith('data:') ? 'Đã chọn ảnh từ máy' : form.image}
-            onChange={(e) => setForm({ ...form, image: e.target.value })}
-            placeholder="Hoặc dán URL ảnh"
-            style={{ ...inputStyle, flex: 1, minWidth: '240px' }}
-          />
-        </div>
-        <div style={{ color: '#8b92a7', fontSize: '13px' }}>
-          Chọn file sẽ mở cửa sổ chọn ảnh trên máy và lưu ảnh để xem trước.
-        </div>
+      <div className="product-page__modal-image-row">
+        <button type="button" onClick={onPickImage} className="product-page__btn-secondary">
+          Chọn ảnh từ máy
+        </button>
+        <input
+          value={form.image.startsWith('data:') ? 'Đã chọn ảnh từ máy' : form.image}
+          onChange={(e) => setForm({ ...form, image: e.target.value })}
+          placeholder="Hoặc dán URL ảnh"
+          className="product-page__input product-page__input--flex"
+        />
       </div>
+      <div className="product-page__modal-image-help">Chọn file sẽ mở cửa sổ chọn ảnh trên máy và lưu ảnh để xem trước.</div>
       {form.image && (
-        <div style={{ display: 'grid', gap: '8px' }}>
-          <div style={{ color: '#8b92a7', fontSize: '13px' }}>Xem trước ảnh</div>
-          <img
-            src={form.image}
-            alt="Preview"
-            style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #2a2f3e' }}
-          />
+        <div className="product-page__preview-group">
+          <div className="product-page__modal-image-help">Xem trước ảnh</div>
+          <img src={form.image} alt="Preview" className="product-page__preview" />
         </div>
       )}
-      <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Mô tả" rows={4} style={{ ...inputStyle, resize: 'vertical' }} />
+      <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Mô tả" rows={4} className="product-page__textarea" />
     </div>
   )
 }
@@ -392,117 +363,28 @@ function Modal({
   children: ReactNode
 }) {
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '18px' }}>
-          <h2 style={{ margin: 0, fontSize: '20px' }}>{title}</h2>
-          <button onClick={onClose} style={closeButtonStyle}>×</button>
+    <div className="product-page__modal-overlay" onClick={onClose}>
+      <div className="product-page__modal" onClick={(e) => e.stopPropagation()}>
+        <div className="product-page__modal-header">
+          <h2 className="product-page__modal-title">{title}</h2>
+          <button onClick={onClose} className="product-page__btn-close">
+            ×
+          </button>
         </div>
         {children}
         {!hideSubmit && onSubmit && (
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
-            <button onClick={onClose} style={secondaryButtonStyle}>Hủy</button>
-            <button onClick={onSubmit} style={primaryButtonStyle}>{submitLabel}</button>
+          <div className="product-page__modal-actions">
+            <button onClick={onClose} className="product-page__btn-secondary">
+              Hủy
+            </button>
+            <button onClick={onSubmit} className="product-page__btn-primary">
+              {submitLabel}
+            </button>
           </div>
         )}
       </div>
     </div>
   )
-}
-
-const thStyle: CSSProperties = {
-  padding: '16px 18px',
-  textAlign: 'left',
-  color: '#8b92a7',
-  fontSize: '12px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '1px',
-}
-
-const tdStyle: CSSProperties = {
-  padding: '16px 18px',
-  color: '#cbd5e1',
-  verticalAlign: 'middle',
-}
-
-const inputStyle: CSSProperties = {
-  width: '100%',
-  padding: '12px 14px',
-  background: '#0f1419',
-  border: '1px solid #2a2f3e',
-  borderRadius: '10px',
-  color: 'white',
-}
-
-const overlayStyle: CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.75)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '24px',
-  zIndex: 1000,
-}
-
-const modalStyle: CSSProperties = {
-  width: 'min(100%, 760px)',
-  background: '#1a1f2e',
-  border: '1px solid #2a2f3e',
-  borderRadius: '16px',
-  padding: '24px',
-}
-
-const closeButtonStyle: CSSProperties = {
-  width: '36px',
-  height: '36px',
-  borderRadius: '10px',
-  border: '1px solid #2a2f3e',
-  background: '#0f1419',
-  color: 'white',
-  cursor: 'pointer',
-  fontSize: '20px',
-}
-
-const primaryButtonStyle: CSSProperties = {
-  padding: '10px 16px',
-  borderRadius: '10px',
-  border: 'none',
-  background: '#7a73ea',
-  color: 'white',
-  cursor: 'pointer',
-  fontWeight: 700,
-}
-
-const secondaryButtonStyle: CSSProperties = {
-  padding: '10px 16px',
-  borderRadius: '10px',
-  border: '1px solid #2a2f3e',
-  background: '#0f1419',
-  color: 'white',
-  cursor: 'pointer',
-  fontWeight: 700,
-}
-
-function actionButton(color: string): CSSProperties {
-  return {
-    padding: '8px 12px',
-    borderRadius: '8px',
-    border: 'none',
-    background: color,
-    color: 'white',
-    cursor: 'pointer',
-    fontWeight: 700,
-  }
-}
-
-function money(value: number) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value)
 }
 
 export default Products
